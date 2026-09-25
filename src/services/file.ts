@@ -29,7 +29,7 @@ const MD_EXTENSIONS = [
 export async function confirmDialog(message: string): Promise<boolean> {
   if (isTauri) {
     try {
-      return await ask(message, { title: "Rocktier Markdown", kind: "warning" });
+      return await ask(message, { title: "Rocktier Write", kind: "warning" });
     } catch {
       return window.confirm(message);
     }

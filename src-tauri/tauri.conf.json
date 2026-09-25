@@ -47,7 +47,7 @@
     "windows": {
       "wix": {
         "language": "en-US",
-        "upgradeCode": "12345678-1234-1234-1234-123456789012"
+        "upgradeCode": "09ABB9EB-24D3-41C0-992E-C8935E2A6AF5"
       }
     }
   },
@@ -82,7 +82,7 @@
       "windows": {
         "installMode": "passive"
       },
-      "pubkey": "",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk1NURDQ0U4NjMxOUQzMzgKUldRNDB4bGo2TXhkbGVHdktxc3ZhV3cwMEo4VXBZTWpFYldZeXFOK05DWkVZZVJuQ1EzTGhrcGkK",
       "endpoints": [
         "https://github.com/Rocktier/Rocktier-Write/releases/latest/download/latest.json"
       ]

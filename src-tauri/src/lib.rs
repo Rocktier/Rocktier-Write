@@ -309,12 +309,12 @@ fn build_app_menu(app: &tauri::AppHandle, lang: &str) -> tauri::Result<()> {
 
     let app_menu = Submenu::with_items(
         app,
-        "Rocktier Markdown",
+        "Rocktier Write",
         true,
         &[
             &PredefinedMenuItem::about(
                 app,
-                Some(l("关于 Rocktier Markdown", "About Rocktier Markdown")),
+                Some(l("关于 Rocktier Write", "About Rocktier Write")),
                 None,
             )?,
             &PredefinedMenuItem::separator(app)?,
