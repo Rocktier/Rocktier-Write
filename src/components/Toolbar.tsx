@@ -1,5 +1,6 @@
 import { memo, useState, useRef, useEffect } from "react";
 import { t, useUiLang } from "../i18n";
+import { RecentMenu } from "./RecentMenu";
 
 type FocusMode = "off" | "paragraph" | "sentence";
 
@@ -23,6 +24,13 @@ interface Props {
   onCycleFocus: () => void;
   wordGoal: number;
   onSetWordGoal: (n: number) => void;
+  // v11.3 preview + recent
+  onExportPdf?: () => void;
+  recentItems?: string[];
+  onOpenRecent?: (path: string) => void;
+  onClearRecent?: () => void;
+  viewMode?: "edit" | "preview";
+  onToggleView?: () => void;
 }
 
 const FOCUS_LABELS: Record<FocusMode, () => string> = {
@@ -51,11 +59,30 @@ export const Toolbar = memo(function Toolbar({
   onCycleFocus,
   wordGoal,
   onSetWordGoal,
+  onExportPdf,
+  recentItems,
+  onOpenRecent,
+  onClearRecent,
+  viewMode,
+  onToggleView,
 }: Props) {
   useUiLang();
   const [goalInputOpen, setGoalInputOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState("");
   const goalInputRef = useRef<HTMLInputElement>(null);
+  const [recentMenuOpen, setRecentMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!recentMenuOpen) return;
+    const close = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (!t.closest(".recent-btn") && !t.closest(".recent-menu")) setRecentMenuOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setRecentMenuOpen(false); };
+    window.addEventListener("mousedown", close);
+    window.addEventListener("keydown", esc);
+    return () => { window.removeEventListener("mousedown", close); window.removeEventListener("keydown", esc); };
+  }, [recentMenuOpen]);
 
   useEffect(() => {
     if (goalInputOpen && goalInputRef.current) {
@@ -187,6 +214,41 @@ export const Toolbar = memo(function Toolbar({
             <text x="4" y="13" fontSize="3.5" fontWeight="700" fill="currentColor" stroke="none">W</text>
           </svg>
         </button>
+        {onExportPdf && (
+          <button className="tbar-btn" onClick={onExportPdf} title={t("menu.exportPdf")} aria-label={t("menu.exportPdf")}>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
+              <line x1="7.5" y1="1" x2="7.5" y2="8" />
+              <polyline points="5,5.5 7.5,8 10,5.5" fill="none" />
+              <text x="3.5" y="13" fontSize="3.2" fontWeight="700" fill="currentColor" stroke="none">PDF</text>
+            </svg>
+          </button>
+        )}
+        {onToggleView && (
+          <button
+            className={`tbar-btn view-toggle ${viewMode === "preview" ? "active" : ""}`}
+            onClick={onToggleView}
+            title={viewMode === "edit" ? t("toolbar.preview") : t("toolbar.editView")}
+            aria-label={viewMode === "edit" ? t("toolbar.preview") : t("toolbar.editView")}
+            aria-pressed={viewMode === "preview"}
+          >
+            {viewMode === "edit" ? t("toolbar.preview") : t("toolbar.editView")}
+          </button>
+        )}
+        {recentItems !== undefined && recentItems.length > 0 && (
+          <button
+            className="tbar-btn recent-btn"
+            onClick={() => setRecentMenuOpen((v) => !v)}
+            title={t("recent.title")}
+            aria-label={t("recent.title")}
+            aria-haspopup="menu"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+              <polyline points="5,1 5,6 9,6" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="7" cy="7" r="5.5" />
+            </svg>
+            <span className="recent-badge">{recentItems.length}</span>
+          </button>
+        )}
         <button className="tbar-btn" onClick={onNew} title={t("toolbar.new")} aria-label={t("toolbar.new")}>
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
             <line x1="7.5" y1="2" x2="7.5" y2="13" />
@@ -252,6 +314,33 @@ export const Toolbar = memo(function Toolbar({
           </svg>
         </button>
       </div>
+      {recentMenuOpen && onOpenRecent && onClearRecent && (
+        <RecentMenuHost items={recentItems ?? []} onOpen={onOpenRecent} onClear={onClearRecent} onClose={() => setRecentMenuOpen(false)} />
+      )}
     </header>
   );
 });
+
+function RecentMenuPopover({ items, onOpen, onClear }: {
+  items: string[];
+  onOpen: (p: string) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="recent-popover" role="menu" aria-label="Open Recent">
+      <RecentMenu items={items} onOpen={onOpen} onClear={onClear} />
+    </div>
+  );
+}
+
+/** Toolbar-side wrapper: closes menu when an item is chosen. */
+function RecentMenuHost({ items, onOpen, onClear, onClose }: {
+  items: string[];
+  onOpen: (p: string) => void;
+  onClear: () => void;
+  onClose: () => void;
+}) {
+  const wrapOpen = (p: string) => { onClose(); onOpen(p); };
+  const wrapClear = () => { onClose(); onClear(); };
+  return <RecentMenuPopover items={items} onOpen={wrapOpen} onClear={wrapClear} />;
+}

@@ -13,6 +13,8 @@ import { WorkspaceStats } from "./components/WorkspaceStats";
 import { FindReplace } from "./components/FindReplace";
 import { StatusBar } from "./components/StatusBar";
 import { TabBar, type TabDoc } from "./components/TabBar";
+import { Preview } from "./components/Preview";
+import { FrontmatterPanel } from "./components/FrontmatterPanel";
 import { useTheme, toggleTheme } from "./hooks/useTheme";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
@@ -21,6 +23,7 @@ import {
 import { exists, readTextFile, stat } from "@tauri-apps/plugin-fs";
 import { WELCOME_DOCUMENT, type MarkdownDocument } from "./types/index";
 import { t, useUiLang } from "./i18n";
+import { extractFrontmatter } from "./services/markdown";
 
 const LAST_PATH_KEY = "rocktier-write-last-path";
 const RECENT_KEY = "rocktier-write-recent";
@@ -57,6 +60,14 @@ export default function App() {
   const [wordGoal, setWordGoal] = useState(0);
   const [sessionStart] = useState(() => Date.now());
   const [cmReady, setCmReady] = useState(false);
+  // v1.1.3: view/edit toggle, frontmatter panel, recent menu
+  const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
+  const [fmOpen, setFmOpen] = useState(false);
+  const [recentItems, setRecentItems] = useState<string[]>([]);
+  const refreshRecent = useCallback(() => {
+    try { setRecentItems(JSON.parse(localStorage.getItem(RECENT_KEY) || "[]")); } catch { /* */ }
+  }, []);
+  useEffect(() => { refreshRecent(); }, [refreshRecent]);
 
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkingRef = useRef(false);
@@ -326,7 +337,57 @@ export default function App() {
     } catch { showToast(t("toast.saveFailed")); }
   }, [activeDoc, showToast]);
 
-  // ── New doc ──────────────────────────────────────────────────────
+  // Export PDF: switch to preview (browser print) and invoke native print.
+  // The "Save as PDF" target is chosen by the user inside the print dialog.
+  const doExportPdf = useCallback(async () => {
+    if (viewMode !== "preview") setViewMode("preview");
+    // give React a tick to paint preview, then open print dialog
+    requestAnimationFrame(() => {
+      invoke("print_doc").catch(() => {});
+    });
+  }, [viewMode]);
+
+  // ── Paste image ─────────────────────────────────────────────────
+  // Editor reports paste event up; App owns the doc path + Rust invoke.
+  // Writes <ts>.<ext> into <docname>-assets/ next to the .md, then inserts
+  // ![<name>](<relPath>) at the current cursor via shared __cmView.
+  const onPasteImage = useCallback(
+    async (mime: string, b64: string) => {
+      const path = activeDoc.path;
+      if (!path) {
+        showToast(t("toast.saveFirstForImage"));
+        return;
+      }
+      const ext = mime.includes("png")
+        ? "png"
+        : mime.includes("gif")
+          ? "gif"
+          : mime.includes("webp")
+            ? "webp"
+            : "jpg";
+      const base = path.replace(/\.[^.]+$/, "");
+      const parentPath = base + "-assets";
+      const name = `img-${Date.now()}.${ext}`;
+      const absPath = `${parentPath}/${name}`;
+      try {
+        await invoke("save_paste_image", { path: absPath, data: b64 });
+        const stem = base.split(/[\\]/).pop() ?? "assets";
+        const relPath = `${stem}-assets/${name}`;
+        const md = `![${name}](${relPath})`;
+        const cm = (window as unknown as {
+          __cmView?: {
+            state: { selection: { main: { head: number } } };
+            dispatch: (t: unknown) => void;
+          };
+        }).__cmView;
+        if (cm) cm.dispatch({ changes: { from: cm.state.selection.main.head, insert: md } });
+        showToast(t("toast.pastedImage"));
+      } catch { showToast(t("toast.imageFailed")); }
+    },
+    [activeDoc.path, showToast],
+  );
+
+  // New doc
   const doNew = useCallback(() => {
     const newDoc: MarkdownDocument = { path: null, content: "", modified: false };
     setDocs((prev) => [...prev, newDoc]);
@@ -376,9 +437,12 @@ export default function App() {
           case "save": doSave(); break;
           case "save-as": doSaveAs(); break;
           case "export-docx": doExportDocx(); break;
+          case "export-pdf": doExportPdf(); break;
           case "find": setFindReplaceOpen((v) => !v); break;
           case "toggle-sidebar": setSidebar((v) => !v); break;
           case "toggle-theme": toggleTheme(); break;
+          case "toggle-preview": setViewMode((m) => (m === "edit" ? "preview" : "edit")); break;
+          case "toggle-frontmatter": setFmOpen((v) => !v); break;
         }
       })
       .then((fn) => { if (disposed) fn(); else unlisten = fn; });
@@ -528,6 +592,21 @@ export default function App() {
     document.title = activeDoc.path ? `${baseName(activeDoc.path)} — Rocktier Write` : "Rocktier Write";
   }, [activeDoc.path]);
 
+  const hasFrontmatter = useMemo(
+    () => extractFrontmatter(activeDoc.content).frontmatter !== null,
+    [activeDoc.content],
+  );
+
+  const onOpenRecent = useCallback((filePath: string) => {
+    void openPath(filePath);
+    refreshRecent();
+  }, [openPath, refreshRecent]);
+
+  const onClearRecent = useCallback(() => {
+    try { localStorage.removeItem(RECENT_KEY); } catch { /* */ }
+    setRecentItems([]);
+  }, []);
+
   return (
     <div className="app-shell">
       <Toolbar
@@ -545,11 +624,17 @@ export default function App() {
         onCycleFocus={cycleFocus}
         wordGoal={wordGoal}
         onSetWordGoal={setWordGoal}
-        hasFrontmatter={false}
-        frontmatterOpen={false}
-        onToggleInfo={() => {}}
+        hasFrontmatter={hasFrontmatter}
+        frontmatterOpen={fmOpen}
+        onToggleInfo={() => setFmOpen((v) => !v)}
         onImportDocx={doOpen}
         onExportDocx={doExportDocx}
+        onExportPdf={doExportPdf}
+        recentItems={recentItems}
+        onOpenRecent={onOpenRecent}
+        onClearRecent={onClearRecent}
+        viewMode={viewMode}
+        onToggleView={() => setViewMode((m) => (m === "edit" ? "preview" : "edit"))}
       />
       <TabBar
         tabs={tabDocs}
@@ -567,6 +652,14 @@ export default function App() {
             completedDocs={completedDocs}
             goalDocs={wordGoal > 0 ? docs.length : 0}
           />
+        {fmOpen && (
+          <FrontmatterPanel
+            content={activeDoc.content}
+            onContentChange={(c) => {
+              setActiveDoc((d) => ({ ...d, content: c, modified: true }));
+            }}
+          />
+        )}
         <ChapterTree
           headings={headings}
           currentLine={cursorLine}
@@ -593,16 +686,26 @@ export default function App() {
         />
         </aside>
         <main className="editor-container">
-          {cmReady && findReplaceOpen && <FindReplace onClose={() => setFindReplaceOpen(false)} />}
-          <Editor
-            content={activeDoc.content}
-            onChange={(content) => setActiveDoc((d) => ({ ...d, content, modified: true }))}
-            onEditorReady={() => setCmReady(true)}
-            onCursorMove={onCursorMove}
-            focusMode={focusMode}
-            cursorLine={cursorLine}
-            placeholder={t("editor.placeholder")}
-          />
+          {cmReady && findReplaceOpen && viewMode === "edit" && (
+            <FindReplace onClose={() => setFindReplaceOpen(false)} />
+          )}
+          <div className={`editor-pane-wrap ${viewMode === "preview" ? "hidden" : ""}`}>
+            <Editor
+              content={activeDoc.content}
+              onChange={(content) => setActiveDoc((d) => ({ ...d, content, modified: true }))}
+              onEditorReady={() => setCmReady(true)}
+              onCursorMove={onCursorMove}
+              onPasteImage={onPasteImage}
+              focusMode={focusMode}
+              cursorLine={cursorLine}
+              placeholder={t("editor.placeholder")}
+            />
+          </div>
+          {viewMode === "preview" && (
+            <div className="preview-pane-wrap">
+              <Preview content={activeDoc.content} onExit={() => setViewMode("edit")} />
+            </div>
+          )}
         </main>
       </div>
       <StatusBar

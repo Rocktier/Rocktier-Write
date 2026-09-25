@@ -22,6 +22,7 @@ interface Props {
   onChange: (content: string) => void;
   onEditorReady?: (api: CmAPI) => void;
   onCursorMove?: (line: number) => void;
+  onPasteImage?: (mime: string, base64Data: string) => void;
   focusMode: FocusMode;
   cursorLine: number;
   placeholder?: string;
@@ -108,6 +109,7 @@ export const Editor = memo(function Editor({
   onChange,
   onEditorReady,
   onCursorMove,
+  onPasteImage,
   focusMode,
   cursorLine,
   placeholder,
@@ -173,6 +175,36 @@ export const Editor = memo(function Editor({
       });
     }
   }, [content]);
+
+  // Paste image → report to App so it can persist + insert the markdown link.
+  // Hooked to the host's contenteditable so we can see clipboard files without
+  // disturbing normal CM text paste handling.
+  useEffect(() => {
+    if (!onPasteImage) return;
+    const host = hostRef.current;
+    if (!host) return;
+    const handler = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            const comma = result.indexOf(",");
+            if (comma > 0) onPasteImage(item.type, result.slice(comma + 1));
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
+      }
+    };
+    host.addEventListener("paste", handler);
+    return () => host.removeEventListener("paste", handler);
+  }, [onPasteImage]);
 
   // Expose view globally so FindReplace + ChapterTree can call into it
   useEffect(() => {
