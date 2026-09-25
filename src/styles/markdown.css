@@ -1,0 +1,469 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ROCKTIER MARKDOWN — Rendered Content Typography
+   Serif body, refined headings, Nothing OS code blocks
+   ═══════════════════════════════════════════════════════════════════ */
+
+.md-viewer {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text-primary);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 52px 120px;
+  word-wrap: break-word;
+}
+
+/* ── Headings ────────────────────────────────────────────────────── */
+
+.md-viewer h1 {
+  font-family: var(--font-sans);
+  font-size: 2em;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 1.6em 0 0.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+
+.md-viewer h2 {
+  font-family: var(--font-sans);
+  font-size: 1.55em;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin: 1.4em 0 0.4em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid var(--border);
+}
+
+.md-viewer h3 {
+  font-family: var(--font-sans);
+  font-size: 1.25em;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 1.2em 0 0.35em;
+}
+
+.md-viewer h4,
+.md-viewer h5,
+.md-viewer h6 {
+  font-family: var(--font-sans);
+  font-size: 1.05em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 1em 0 0.3em;
+  color: var(--text-secondary);
+}
+
+.md-viewer h5 { font-size: 0.95em; }
+.md-viewer h6 { font-size: 0.9em; }
+
+/* ── Paragraphs & Inline ─────────────────────────────────────────── */
+
+.md-viewer p {
+  margin: 0.65em 0;
+}
+
+.md-viewer a {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--dur-fast);
+}
+
+.md-viewer a:hover {
+  text-decoration-color: var(--text-primary);
+}
+
+.md-viewer strong {
+  font-weight: 650;
+}
+
+.md-viewer em {
+  font-style: italic;
+}
+
+.md-viewer del {
+  color: var(--text-tertiary);
+}
+
+.md-viewer mark {
+  background: rgba(255, 214, 10, 0.2);
+  color: var(--text-primary);
+  padding: 0.1em 0.25em;
+  border-radius: 2px;
+}
+
+.md-viewer abbr {
+  text-decoration: underline dotted var(--text-tertiary);
+  cursor: help;
+}
+
+/* ── Blockquote ──────────────────────────────────────────────────── */
+
+.md-viewer blockquote {
+  margin: 1em 0;
+  padding: 0.4em 1.2em;
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.md-viewer blockquote blockquote {
+  margin-left: 0.6em;
+}
+
+/* ── Horizontal Rule ────────────────────────────────────────────── */
+
+.md-viewer hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2em 0;
+}
+
+/* ── Lists ───────────────────────────────────────────────────────── */
+
+.md-viewer ul,
+.md-viewer ol {
+  margin: 0.65em 0;
+  padding-left: 1.6em;
+}
+
+.md-viewer li {
+  margin: 0.2em 0;
+}
+
+.md-viewer li > ul,
+.md-viewer li > ol {
+  margin: 0.15em 0;
+}
+
+/* Task list */
+.md-viewer .task-list-item {
+  list-style: none;
+  margin-left: -1.6em;
+}
+
+.md-viewer .task-list-item-checkbox {
+  margin-right: 0.5em;
+}
+
+/* ── Nested List Indentation (checkbox-based hierarchy) ─────────────
+   Increases margin-left for li that contains a nested ul/ol,
+   up to 4 levels deep (~24px per level). */
+
+.md-viewer li > ul,
+.md-viewer li > ol {
+  margin: 0.15em 0;
+}
+
+.md-viewer li {
+  margin: 0.2em 0;
+}
+
+/* Level 1 nested (immediate child of li which has a nested list) */
+.md-viewer li > ul > li,
+.md-viewer li > ol > li {
+  margin-left: 24px;
+}
+
+/* Level 2 */
+.md-viewer li > ul > li > ul > li,
+.md-viewer li > ul > li > ol > li,
+.md-viewer li > ol > li > ul > li,
+.md-viewer li > ol > li > ol > li {
+  margin-left: 48px;
+}
+
+/* Level 3 */
+.md-viewer li > ul > li > ul > li > ul > li,
+.md-viewer li > ul > li > ul > li > ol > li,
+.md-viewer li > ul > li > ol > li > ul > li,
+.md-viewer li > ul > li > ol > li > ol > li,
+.md-viewer li > ol > li > ul > li > ul > li,
+.md-viewer li > ol > li > ul > li > ol > li,
+.md-viewer li > ol > li > ol > li > ul > li,
+.md-viewer li > ol > li > ol > li > ol > li {
+  margin-left: 72px;
+}
+
+/* Level 4 */
+.md-viewer li > ul > li > ul > li > ul > li > ul > li,
+.md-viewer li > ul > li > ul > li > ul > li > ol > li,
+.md-viewer li > ul > li > ul > li > ol > li > ul > li,
+.md-viewer li > ul > li > ul > li > ol > li > ol > li,
+.md-viewer li > ul > li > ol > li > ul > li > ul > li,
+.md-viewer li > ul > li > ol > li > ul > li > ol > li,
+.md-viewer li > ul > li > ol > li > ol > li > ul > li,
+.md-viewer li > ul > li > ol > li > ol > li > ol > li,
+.md-viewer li > ol > li > ul > li > ul > li > ul > li,
+.md-viewer li > ol > li > ul > li > ul > li > ol > li,
+.md-viewer li > ol > li > ul > li > ol > li > ul > li,
+.md-viewer li > ol > li > ul > li > ol > li > ol > li,
+.md-viewer li > ol > li > ol > li > ul > li > ul > li,
+.md-viewer li > ol > li > ol > li > ul > li > ol > li,
+.md-viewer li > ol > li > ol > li > ol > li > ul > li,
+.md-viewer li > ol > li > ol > li > ol > li > ol > li {
+  margin-left: 96px;
+}
+
+/* ── Code ────────────────────────────────────────────────────────── */
+
+.md-viewer code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--accent-muted);
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.md-viewer pre {
+  font-family: var(--font-mono);
+  font-size: 0.84em;
+  line-height: 1.7;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1em 1.2em;
+  margin: 1.2em 0;
+  overflow-x: auto;
+  tab-size: 2;
+  position: relative;
+}
+
+/* ── Code block language badge (from code[data-lang], set by highlightCode) */
+
+.md-viewer pre code[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.5em;
+  right: 0.8em;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
+/* ── Tables ──────────────────────────────────────────────────────── */
+
+.md-viewer table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2em 0;
+  font-size: 0.9em;
+}
+
+.md-viewer th {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.5em 0.8em;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.md-viewer td {
+  padding: 0.45em 0.8em;
+  border-bottom: 1px solid var(--border);
+}
+
+.md-viewer tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Images ──────────────────────────────────────────────────────── */
+
+.md-viewer img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  margin: 1.2em auto;
+  display: block;
+}
+
+.md-viewer figure {
+  margin: 1.2em 0;
+}
+
+.md-viewer figcaption {
+  font-size: 0.85em;
+  color: var(--text-tertiary);
+  text-align: center;
+  margin-top: 0.5em;
+}
+
+/* ── Footnotes ───────────────────────────────────────────────────── */
+
+.md-viewer .footnote-ref a {
+  font-size: 0.75em;
+  vertical-align: super;
+  text-decoration: none;
+}
+
+.md-viewer .footnotes {
+  font-size: 0.85em;
+  border-top: 1px solid var(--border);
+  margin-top: 2em;
+  padding-top: 1em;
+  color: var(--text-tertiary);
+}
+
+/* ── Definition List ─────────────────────────────────────────────── */
+
+.md-viewer dt {
+  font-weight: 600;
+  margin-top: 0.7em;
+}
+
+.md-viewer dd {
+  margin-left: 1.2em;
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Highlight.js Theme (GitHub Dark/Light inspired — real hue contrast)
+   Mapped through --code-* tokens for both themes.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.hljs {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+/* Keywords & control flow */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-doctag,
+.hljs-meta .hljs-keyword {
+  color: var(--code-keyword);
+  font-weight: 600;
+}
+
+/* Strings, regex, diff additions */
+.hljs-string,
+.hljs-regexp,
+.hljs-addition {
+  color: var(--code-string);
+}
+
+/* Numbers, constants, links */
+.hljs-number,
+.hljs-literal,
+.hljs-symbol,
+.hljs-link {
+  color: var(--code-number);
+}
+
+/* Function & method names (hljs v11 scoped + legacy) */
+.hljs-title,
+.hljs-title.function_ {
+  color: var(--code-function);
+}
+
+/* Types, classes, builtins */
+.hljs-title.class_,
+.hljs-type,
+.hljs-built_in,
+.hljs-class .hljs-title {
+  color: var(--code-type);
+}
+
+.hljs-section {
+  color: var(--code-function);
+  font-weight: 600;
+}
+
+/* Variables & attributes */
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-template-variable {
+  color: var(--code-variable);
+}
+
+/* Markup tag names (xml/html) */
+.hljs-name,
+.hljs-tag {
+  color: var(--code-tag);
+}
+
+/* CSS selectors */
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-selector-pseudo,
+.hljs-selector-attr {
+  color: var(--code-type);
+}
+
+/* Meta info, diff removal */
+.hljs-meta,
+.hljs-meta .hljs-string {
+  color: var(--code-comment);
+}
+
+.hljs-deletion {
+  color: var(--code-keyword);
+}
+
+.hljs-subst {
+  color: var(--text-primary);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 650;
+}
+
+/* ── Print ───────────────────────────────────────────────────────── */
+/* Print / export PDF: only the rendered preview. The editor pane, chrome
+   and overlays are hidden, and all scrolling containers are expanded so
+   long documents are not clipped to the viewport. */
+
+@media print {
+  .toolbar,
+  .sidebar,
+  .sidebar-overlay,
+  .editor-pane,
+  .status-bar,
+  .find-replace-bar,
+  .frontmatter-panel,
+  .toast {
+    display: none !important;
+  }
+
+  .app-shell,
+  .app-body,
+  .editor-container,
+  .preview-pane,
+  .preview-scroll {
+    display: block;
+    overflow: visible;
+    height: auto;
+  }
+
+  .md-viewer {
+    max-width: none;
+    padding: 0;
+    print-color-adjust: economic;
+    -webkit-print-color-adjust: economic;
+  }
+
+  .md-viewer pre {
+    white-space: pre-wrap;
+  }
+}

@@ -1,0 +1,40 @@
+[package]
+name = "rocktier-write"
+version = "0.1.0"
+description = "Distraction-free long-form writing, DOCX support"
+authors = ["Rocktier"]
+edition = "2021"
+
+[lib]
+name = "rocktier_write_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.0", features = [] }
+
+[dependencies]
+tauri-plugin-opener = "2"
+tauri = { version = "2.0", features = [] }
+tauri-plugin-dialog = "2.0"
+tauri-plugin-fs = "2.0"
+# Required by tauri::generate_context! (macro references ::serde_json directly)
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+# 粘贴图片落盘时解码 base64（tauri 传递依赖里已有同版本，不引入新下载）
+base64 = "0.22"
+# DOCX import/export (pure-Rust, no Office deps)
+docx-rs = "0.4"
+# HTTP client for Paddle license API (uses rustls for cross-platform TLS)
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+# Size- and startup-optimized release binary
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

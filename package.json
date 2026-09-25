@@ -1,0 +1,43 @@
+{
+  "name": "rocktier-write",
+  "version": "1.0.2",
+  "description": "Distraction-free long-form writing — Rocktier family",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "echo 'Use GitHub Actions: Rocktier/Rocktier-Write workflow'",
+    "tauri:windows:build": "echo 'Use GitHub Actions: Rocktier/Rocktier-Write workflow'"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-dialog": "^2.0.0",
+    "@tauri-apps/plugin-fs": "^2.0.0",
+    "dompurify": "^3.4.15",
+    "highlight.js": "^11.12.0",
+    "katex": "^0.18.7",
+    "micromark": "^4.0.0",
+    "micromark-extension-gfm": "^3.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@vitest/coverage-v8": "^5.0.1",
+    "jsdom": "^30.1.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "vite-plugin-singlefile": "^2.3.3",
+    "vitest": "^5.0.1",
+    "@choochmeque/tauri-windows-bundle": "^0.1.29"
+  }
+}

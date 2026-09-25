@@ -1,0 +1,143 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ROCKTIER MARKDOWN — Design Tokens
+   Nothing OS inspired — Monochrome + Dot Motif
+   Part of the Rocktier family (aligned with PDF-Squeeze baseline)
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Core surfaces ───────────────────────────────────────────── */
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-surface: #0a0a0a;
+  --bg-elevated: #111111;
+  --bg-floating: #141414;
+
+  /* ── Dot motif ──────────────────────────────────────────────── */
+  --dot-pattern: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  --dot-size: 20px;
+
+  /* ── Borders ─────────────────────────────────────────────────── */
+  --border: rgba(255, 255, 255, 0.06);
+  --border-mid: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  /* ── Text hierarchy ──────────────────────────────────────────── */
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.70);
+  --text-tertiary: rgba(255, 255, 255, 0.45);
+  --text-muted: rgba(255, 255, 255, 0.30);
+
+  /* ── Accent ──────────────────────────────────────────────────── */
+  --accent: #ffffff;
+  --accent-muted: rgba(255, 255, 255, 0.08);
+  --accent-hover: rgba(255, 255, 255, 0.14);
+  --accent-active: rgba(255, 255, 255, 0.20);
+
+  /* ── Semantic (family-aligned) ───────────────────────────────── */
+  --red: rgba(255, 74, 61, 0.9);
+  --danger: rgba(255, 74, 61, 0.9);
+  --success: rgba(48, 209, 88, 0.9);
+  --warning: rgba(255, 159, 10, 0.9);
+
+  /* ── Glow ───────────────────────────────────────────────────── */
+  --glow-sm: 0 0 8px rgba(255, 255, 255, 0.06);
+  --glow-md: 0 0 20px rgba(255, 255, 255, 0.08);
+
+  /* ── Typography ──────────────────────────────────────────────
+     栈内两条原则：① 拉丁字体按国外用户习惯优先（SF/Segoe/Roboto、
+     Georgia/Consolas 等）；② 中文显式兜底——Windows 上缺失 CJK 字体时
+     WebView2 会回退宋体(SimSun)，小字号发虚，故各栈末尾补
+     PingFang SC / 微软雅黑（macOS 侧为宋体，原设计零回归）。 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+  /* 等宽字体无 CJK 字形，monospace 之前显式补中文无衬线兜底 */
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, Menlo,
+    "JetBrains Mono", "Fira Code",
+    "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", monospace;
+  /* 衬线正文：macOS 仍 New York/Songti SC；Windows 落 Georgia 拉丁 +
+     微软雅黑中文，避免 generic serif 的宋体；装思源宋体可直接拿纯正宋体 */
+  --font-serif: "New York", "New York Small", Georgia, "Times New Roman",
+    "Songti SC", "Source Han Serif SC", "Noto Serif CJK SC",
+    "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", serif;
+
+  /* ── Metrics ─────────────────────────────────────────────────── */
+  --toolbar-h: 44px;
+  --sidebar-w: 260px;
+
+  /* ── Radius (family-aligned: sm 12 / md 20 / lg 28) ──────────── */
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-xl: 36px;
+
+  /* ── Motion ──────────────────────────────────────────────────── */
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --dur-fast: 0.15s;
+  --dur-normal: 0.25s;
+
+  /* ── Scrollbar ───────────────────────────────────────────────── */
+  --scrollbar: rgba(255, 255, 255, 0.06);
+  --scrollbar-hover: rgba(255, 255, 255, 0.14);
+
+  /* ── Selection ───────────────────────────────────────────────── */
+  --selection: rgba(255, 255, 255, 0.15);
+
+  /* ── Code syntax (GitHub Dark inspired) ──────────────────────── */
+  --code-comment: #7d8590;
+  --code-keyword: #ff7b72;
+  --code-string: #a5d6ff;
+  --code-number: #79c0ff;
+  --code-function: #d2a8ff;
+  --code-type: #ffa657;
+  --code-variable: #79c0ff;
+  --code-tag: #7ee787;
+}
+
+/* ── Light theme (inverted) ─────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #fafafa;
+  --bg-surface: #fafafa;
+  --bg-elevated: #f5f5f5;
+  --bg-floating: #ffffff;
+  --dot-pattern: radial-gradient(circle, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-mid: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.20);
+  --text-primary: rgba(0, 0, 0, 0.95);
+  --text-secondary: rgba(0, 0, 0, 0.65);
+  --text-tertiary: rgba(0, 0, 0, 0.45);
+  --text-muted: rgba(0, 0, 0, 0.28);
+  --accent: #000000;
+  --accent-muted: rgba(0, 0, 0, 0.05);
+  --accent-hover: rgba(0, 0, 0, 0.10);
+  --accent-active: rgba(0, 0, 0, 0.15);
+  --red: rgba(230, 57, 44, 0.9);
+  --danger: rgba(230, 57, 44, 0.9);
+  --success: rgba(28, 163, 72, 0.9);
+  --warning: rgba(200, 118, 0, 0.9);
+  --glow-sm: 0 0 8px rgba(0, 0, 0, 0.04);
+  --glow-md: 0 0 20px rgba(0, 0, 0, 0.06);
+  --scrollbar: rgba(0, 0, 0, 0.10);
+  --scrollbar-hover: rgba(0, 0, 0, 0.20);
+  --selection: rgba(0, 0, 0, 0.12);
+
+  /* ── Code syntax (GitHub Light inspired) ─────────────────────── */
+  --code-comment: #6e7781;
+  --code-keyword: #cf222e;
+  --code-string: #0a3069;
+  --code-number: #0550ae;
+  --code-function: #8250df;
+  --code-type: #953800;
+  --code-variable: #0550ae;
+  --code-tag: #116329;
+}
+
+/* ── Reduced motion ────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

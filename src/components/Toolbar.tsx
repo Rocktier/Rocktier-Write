@@ -1,0 +1,257 @@
+import { memo, useState, useRef, useEffect } from "react";
+import { t, useUiLang } from "../i18n";
+
+type FocusMode = "off" | "paragraph" | "sentence";
+
+interface Props {
+  onToggleSidebar: () => void;
+  onNew: () => void;
+  onOpen: () => void;
+  onSave: () => void;
+  onImportDocx: () => void;
+  onExportDocx: () => void;
+  modified: boolean;
+  displayName: string;
+  words: number;
+  minutes: number;
+  onToggleTheme: () => void;
+  onFindReplace: () => void;
+  hasFrontmatter: boolean;
+  frontmatterOpen: boolean;
+  onToggleInfo: () => void;
+  focusMode: FocusMode;
+  onCycleFocus: () => void;
+  wordGoal: number;
+  onSetWordGoal: (n: number) => void;
+}
+
+const FOCUS_LABELS: Record<FocusMode, () => string> = {
+  off: () => t("toolbar.focusOff"),
+  paragraph: () => t("toolbar.focusParagraph"),
+  sentence: () => t("toolbar.focusSentence"),
+};
+
+export const Toolbar = memo(function Toolbar({
+  onToggleSidebar,
+  onNew,
+  onOpen,
+  onSave,
+  onImportDocx,
+  onExportDocx,
+  modified,
+  displayName,
+  words,
+  minutes,
+  onToggleTheme,
+  onFindReplace,
+  hasFrontmatter,
+  frontmatterOpen,
+  onToggleInfo,
+  focusMode,
+  onCycleFocus,
+  wordGoal,
+  onSetWordGoal,
+}: Props) {
+  useUiLang();
+  const [goalInputOpen, setGoalInputOpen] = useState(false);
+  const [goalDraft, setGoalDraft] = useState("");
+  const goalInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (goalInputOpen && goalInputRef.current) {
+      goalInputRef.current.focus();
+      goalInputRef.current.select();
+    }
+  }, [goalInputOpen]);
+
+  const commitGoal = () => {
+    const n = parseInt(goalDraft, 10);
+    if (n > 0) onSetWordGoal(n);
+    setGoalInputOpen(false);
+    setGoalDraft("");
+  };
+
+  const goalProgress = wordGoal > 0 ? Math.min(100, Math.round((words / wordGoal) * 100)) : 0;
+
+  return (
+    <header className="toolbar">
+      <div className="toolbar-side">
+        <button className="tbar-btn" onClick={onToggleSidebar} title={t("toolbar.toggleSidebar")} aria-label={t("toolbar.toggleSidebar")}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+            <rect x="1.5" y="1.5" width="13" height="13" rx="2" />
+            <line x1="5.5" y1="1.5" x2="5.5" y2="14.5" />
+          </svg>
+        </button>
+        <div className="brand">
+          <svg className="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <rect className="brand-tile" x="1" y="1" width="30" height="30" rx="8.5" />
+            <text
+              className="brand-letters"
+              x="15.4"
+              y="16.6"
+              fontSize="15"
+              fontWeight="700"
+              letterSpacing="-1.1"
+              textAnchor="middle"
+              dominantBaseline="central"
+            >
+              W
+            </text>
+            <circle className="brand-pip" cx="25.6" cy="6.4" r="2.1" />
+          </svg>
+          <span className="brand-name">Rocktier<span className="tag">Write</span></span>
+        </div>
+        <div className={`doc-pill ${modified ? "modified" : ""}`} title={modified ? t("toolbar.unsaved") : undefined}>
+          {modified && <span className="dot" />}
+          <span className="name">{displayName}</span>
+        </div>
+      </div>
+
+      <div className="toolbar-center">
+        <button
+          className={`tbar-btn focus-btn ${focusMode !== "off" ? "active" : ""}`}
+          onClick={onCycleFocus}
+          title={t("toolbar.focusCycle")}
+          aria-label={t("toolbar.focusCycle")}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+            <line x1="1" y1="2" x2="13" y2="2" />
+            <line x1="3" y1="7" x2="11" y2="7" />
+            <line x1="5" y1="12" x2="9" y2="12" />
+          </svg>
+          <span className="focus-label">{FOCUS_LABELS[focusMode]()}</span>
+        </button>
+        {wordGoal > 0 && (
+          <div className="goal-pill" title={t("toolbar.goalProgress", { pct: goalProgress })}>
+            <div className="goal-track"><div className="goal-fill" style={{ width: `${goalProgress}%` }} /></div>
+            <span className="goal-text">{goalProgress}%</span>
+          </div>
+        )}
+      </div>
+
+      <div className="toolbar-actions">
+        {wordGoal > 0 ? (
+          <button
+            className="tbar-btn goal-btn"
+            onClick={() => onSetWordGoal(0)}
+            title={t("toolbar.clearGoal")}
+            aria-label={t("toolbar.clearGoal")}
+          >
+            <span className="stat-num">{wordGoal >= 1000 ? `${(wordGoal / 1000).toFixed(1)}k` : wordGoal}</span>
+          </button>
+        ) : goalInputOpen ? (
+          <input
+            ref={goalInputRef}
+            className="goal-input"
+            type="number"
+            min="1"
+            placeholder={t("toolbar.goalPlaceholder")}
+            value={goalDraft}
+            onChange={(e) => setGoalDraft(e.target.value)}
+            onBlur={commitGoal}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitGoal();
+              else if (e.key === "Escape") { setGoalInputOpen(false); setGoalDraft(""); }
+            }}
+            aria-label={t("toolbar.setGoal")}
+          />
+        ) : (
+          <button
+            className="tbar-btn"
+            onClick={() => { setGoalDraft("1000"); setGoalInputOpen(true); }}
+            title={t("toolbar.setGoal")}
+            aria-label={t("toolbar.setGoal")}
+          >
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+              <circle cx="7.5" cy="7.5" r="5.5" />
+              <line x1="7.5" y1="4" x2="7.5" y2="7.5" strokeLinecap="round" />
+              <line x1="7.5" y1="7.5" x2="10" y2="9" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
+        <div className="tbar-btn stat" role="status" title={t("toolbar.statAria", { n: words, m: minutes })}>
+          <span className="stat-num">{words >= 1000 ? `${(words / 1000).toFixed(1)}k` : words}</span>
+          <span className="stat-sep">/</span>
+          <span className="stat-min">{minutes}m</span>
+        </div>
+        <button className="tbar-btn" onClick={onImportDocx} title={t("toolbar.importDocx")} aria-label={t("toolbar.importDocx")}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
+            <path d="M2 4h4l1.5 1.5H12a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+            <text x="4.5" y="10.5" fontSize="4" fontWeight="700" fill="currentColor" stroke="none">W</text>
+          </svg>
+        </button>
+        <button className="tbar-btn" onClick={onExportDocx} title={t("toolbar.exportDocx")} aria-label={t("toolbar.exportDocx")}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
+            <line x1="7.5" y1="1" x2="7.5" y2="8" />
+            <polyline points="5,5.5 7.5,8 10,5.5" fill="none" />
+            <text x="4" y="13" fontSize="3.5" fontWeight="700" fill="currentColor" stroke="none">W</text>
+          </svg>
+        </button>
+        <button className="tbar-btn" onClick={onNew} title={t("toolbar.new")} aria-label={t("toolbar.new")}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
+            <line x1="7.5" y1="2" x2="7.5" y2="13" />
+            <line x1="2" y1="7.5" x2="13" y2="7.5" />
+          </svg>
+        </button>
+        <button className="tbar-btn" onClick={onOpen} title={t("toolbar.open")} aria-label={t("toolbar.open")}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
+            <path d="M2 4h4l1.5 1.5H12a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+          </svg>
+        </button>
+        <button
+          className={`tbar-btn ${modified ? "has-action" : ""}`}
+          onClick={onSave}
+          title={t("toolbar.save")}
+          aria-label={t("toolbar.save")}
+        >
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
+            <path d="M3 1v5h8V1M3 14v-4h9v4" />
+            <path d="M1 6v8h13V6" />
+          </svg>
+        </button>
+        <button
+          className="tbar-btn"
+          onClick={onFindReplace}
+          title={t("toolbar.find")}
+          aria-label={t("toolbar.find")}
+        >
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
+            <circle cx="6.5" cy="6.5" r="4" />
+            <line x1="9.5" y1="9.5" x2="13" y2="13" />
+          </svg>
+        </button>
+        {hasFrontmatter && (
+          <button
+            className={`tbar-btn ${frontmatterOpen ? "active" : ""}`}
+            onClick={onToggleInfo}
+            title={t("toolbar.info")}
+            aria-label={t("toolbar.info")}
+          >
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
+              <circle cx="7.5" cy="7.5" r="5.5" />
+              <circle cx="7.5" cy="5" r="0.8" fill="currentColor" stroke="none" />
+              <line x1="7.5" y1="7" x2="7.5" y2="11" />
+            </svg>
+          </button>
+        )}
+        <button className="tbar-btn theme-btn" onClick={onToggleTheme} title={t("toolbar.theme")} aria-label={t("toolbar.theme")}>
+          <svg className="icon-sun" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+            <circle cx="7" cy="7" r="3" />
+            <line x1="7" y1="1" x2="7" y2="2.5" strokeLinecap="round" />
+            <line x1="7" y1="11.5" x2="7" y2="13" strokeLinecap="round" />
+            <line x1="1" y1="7" x2="2.5" y2="7" strokeLinecap="round" />
+            <line x1="11.5" y1="7" x2="13" y2="7" strokeLinecap="round" />
+            <line x1="2.8" y1="2.8" x2="3.9" y2="3.9" strokeLinecap="round" />
+            <line x1="10.1" y1="10.1" x2="11.2" y2="11.2" strokeLinecap="round" />
+            <line x1="2.8" y1="11.2" x2="3.9" y2="10.1" strokeLinecap="round" />
+            <line x1="10.1" y1="3.9" x2="11.2" y2="2.8" strokeLinecap="round" />
+          </svg>
+          <svg className="icon-moon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+            <path d="M11 8.5A5 5 0 0 1 5.5 3a4.98 4.98 0 0 1 5.5 5.5z" />
+            <path d="M7 1a6 6 0 0 0 6 6c0 3.31-2.69 6-6 6S1 10.31 1 7a6 6 0 0 2.5-4.87" />
+          </svg>
+        </button>
+      </div>
+    </header>
+  );
+});

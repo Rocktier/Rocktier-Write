@@ -1,0 +1,82 @@
+{
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "fileAssociations": [
+      {
+        "ext": [
+          "md",
+          "markdown",
+          "mdown",
+          "mkd",
+          "mkdn",
+          "mdwn",
+          "mdtxt",
+          "mdtext"
+        ],
+        "name": "Rocktier Write Document",
+        "description": "Markdown / Text Document",
+        "role": "Editor",
+        "mimeType": "text/markdown",
+        "exportedType": {
+          "identifier": "net.daringfireball.markdown",
+          "conformsTo": [
+            "public.text"
+          ]
+        }
+      }
+    ],
+    "copyright": "Copyright 2026 Rocktier",
+    "category": "Productivity",
+    "shortDescription": "Fast, focused long-form writing",
+    "longDescription": "Rocktier Write — A fast, private, distraction-free writing app for long-form authors. Offline-first, pure Markdown, academic DOCX export. Part of the Rocktier family.",
+    "windows": {
+      "wix": {
+        "language": "en-US",
+        "upgradeCode": "12345678-1234-1234-1234-123456789012"
+      }
+    }
+  },
+  "productName": "Rocktier Write",
+  "mainBinaryName": "RocktierWrite",
+  "version": "0.1.0",
+  "identifier": "com.rocktier.write",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Rocktier Write",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 720,
+        "minHeight": 480,
+        "center": true,
+        "decorations": true,
+        "shadow": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'self'"
+    }
+  },
+  "plugins": {
+    "dialog": null,
+    "fs": null
+  }
+}
