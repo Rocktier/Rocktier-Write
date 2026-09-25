@@ -27,6 +27,7 @@ import { extractFrontmatter } from "./services/markdown";
 
 const LAST_PATH_KEY = "rocktier-write-last-path";
 const RECENT_KEY = "rocktier-write-recent";
+const VIEW_MODE_KEY = "rocktier-write-view-mode";
 const RECENT_MAX = 5;
 const UNTITLED_KEY = "__untitled__";
 
@@ -61,7 +62,12 @@ export default function App() {
   const [sessionStart] = useState(() => Date.now());
   const [cmReady, setCmReady] = useState(false);
   // v1.1.3: view/edit toggle, frontmatter panel, recent menu
-  const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
+  const [viewMode, setViewMode] = useState<"edit" | "preview">(() => {
+    const saved = localStorage.getItem(VIEW_MODE_KEY);
+    return saved === "preview" ? "preview" : "edit";
+  });
+  // Persist view mode preference across sessions
+  useEffect(() => { localStorage.setItem(VIEW_MODE_KEY, viewMode); }, [viewMode]);
   const [fmOpen, setFmOpen] = useState(false);
   const [recentItems, setRecentItems] = useState<string[]>([]);
   const refreshRecent = useCallback(() => {
