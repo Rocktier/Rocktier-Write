@@ -10,6 +10,10 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+# tauri-action needs contents: write to create draft releases
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -56,7 +60,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v__VERSION__
+          # Only publish a release when triggered by a tag; plain main push just builds
+          tagName: ${{ github.ref_type == 'tag' && format('v__VERSION__') || '' }}
           releaseName: "Rocktier Write v__VERSION__"
           releaseBody: "Rocktier Write release."
           releaseDraft: true
