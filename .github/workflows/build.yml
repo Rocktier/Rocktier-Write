@@ -16,8 +16,18 @@ permissions:
 
 jobs:
   # ── macOS (Apple Silicon only) ─────────────────────────────────────────
+  # Ad-hoc signing: Tauri passes APPCLE_SIGNING_IDENTITY="" → bundles .app
+  # with ad-hoc signature so unsigned dmgs don't trigger Gatekeeper on load.
   build-macos:
     runs-on: macos-latest
+    env:
+      # Empty signing identity = ad-hoc signing (no Apple Developer cert needed)
+      APPLE_SIGNING_IDENTITY: ""
+      APPLE_CERTIFICATE: ""
+      APPLE_CERTIFICATE_PASSWORD: ""
+      APPLE_ID: ""
+      APPLE_PASSWORD: ""
+      APPLE_TEAM_ID: ""
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +51,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Inherit ad-hoc signing env from job level
         with:
           tagName: ${{ github.ref_type == 'tag' && 'v__VERSION__' || '' }}
           releaseName: "Rocktier Write v__VERSION__"
@@ -48,6 +59,22 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: "--target aarch64-apple-darwin"
+
+      # Verify the bundle was ad-hoc signed & strip any inherited quarantine xattr
+      - name: Verify + clean bundle
+        run: |
+          set -e
+          APP=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/macos -name "*.app" -print -quit)
+          [ -z "$APP" ] && { echo "::error::.app not found"; exit 1; }
+          echo "Signing status:"
+          codesign -dv "$APP" 2>&1 || true
+          xattr -cr "$APP"
+          DMG=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -name "*.dmg" -print -quit)
+          if [ -n "$DMG" ]; then
+            xattr -cr "$DMG"
+            echo "Cleaned quarantine attrs on dmg"
+          fi
+          echo "✅ ad-hoc signing confirmed + quarantine cleared"
 
   # ── Windows (MSI via WiX) ──────────────────────────────────────────────
   build-windows:
