@@ -104,7 +104,7 @@ export const Toolbar = memo(function Toolbar({
     <header className="toolbar">
       <div className="toolbar-side">
         <button className="tbar-btn" onClick={onToggleSidebar} title={t("toolbar.toggleSidebar")} aria-label={t("toolbar.toggleSidebar")}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
             <rect x="1.5" y="1.5" width="13" height="13" rx="2" />
             <line x1="5.5" y1="1.5" x2="5.5" y2="14.5" />
           </svg>
@@ -114,17 +114,26 @@ export const Toolbar = memo(function Toolbar({
             <rect className="brand-tile" x="1" y="1" width="30" height="30" rx="8.5" />
             <text
               className="brand-letters"
-              x="15.4"
-              y="16.6"
-              fontSize="15"
+              x="17"
+              y="17.4"
+              fontSize="12"
               fontWeight="700"
-              letterSpacing="-1.1"
+              letterSpacing="-0.5"
               textAnchor="middle"
               dominantBaseline="central"
             >
-              W
+              WR
             </text>
-            <circle className="brand-pip" cx="25.6" cy="6.4" r="2.1" />
+            <circle className="brand-badge" cx="8.6" cy="8.6" r="4.6" />
+            <path
+              d="M6.6 8.7l1.4 1.4 2.4-2.7"
+              stroke="#0a0a0a"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+            <circle className="brand-pip" cx="25.8" cy="6.2" r="2.2" />
           </svg>
           <span className="brand-name">Rocktier<span className="tag">Write</span></span>
         </div>
@@ -202,25 +211,18 @@ export const Toolbar = memo(function Toolbar({
           <span className="stat-min">{minutes}m</span>
         </div>
         <button className="tbar-btn" onClick={onImportDocx} title={t("toolbar.importDocx")} aria-label={t("toolbar.importDocx")}>
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
-            <path d="M2 4h4l1.5 1.5H12a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
-            <text x="4.5" y="10.5" fontSize="4" fontWeight="700" fill="currentColor" stroke="none">W</text>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+            <path d="M2 6.5h3.5L7 8h5a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V7.5a1 1 0 0 1 1-1z" />
+            <line x1="11" y1="1" x2="11" y2="4.5" />
+              <polyline points="9.5,3 11,4.5 12.5,3" />
           </svg>
         </button>
-        <button className="tbar-btn" onClick={onExportDocx} title={t("toolbar.exportDocx")} aria-label={t("toolbar.exportDocx")}>
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
-            <line x1="7.5" y1="1" x2="7.5" y2="8" />
-            <polyline points="5,5.5 7.5,8 10,5.5" fill="none" />
-            <text x="4" y="13" fontSize="3.5" fontWeight="700" fill="currentColor" stroke="none">W</text>
-          </svg>
+        <button className="tbar-btn export-btn" onClick={onExportDocx} title={t("toolbar.exportDocx")} aria-label={t("toolbar.exportDocx")}>
+          <span className="export-fmt">DOCX</span>
         </button>
         {onExportPdf && (
-          <button className="tbar-btn" onClick={onExportPdf} title={t("menu.exportPdf")} aria-label={t("menu.exportPdf")}>
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
-              <line x1="7.5" y1="1" x2="7.5" y2="8" />
-              <polyline points="5,5.5 7.5,8 10,5.5" fill="none" />
-              <text x="3.5" y="13" fontSize="3.2" fontWeight="700" fill="currentColor" stroke="none">PDF</text>
-            </svg>
+          <button className="tbar-btn export-btn" onClick={onExportPdf} title={t("menu.exportPdf")} aria-label={t("menu.exportPdf")}>
+            <span className="export-fmt">PDF</span>
           </button>
         )}
         {onToggleView && (
@@ -242,7 +244,7 @@ export const Toolbar = memo(function Toolbar({
             aria-label={t("recent.title")}
             aria-haspopup="menu"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
               <polyline points="5,1 5,6 9,6" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx="7" cy="7" r="5.5" />
             </svg>
@@ -250,7 +252,7 @@ export const Toolbar = memo(function Toolbar({
           </button>
         )}
         <button className="tbar-btn" onClick={onNew} title={t("toolbar.new")} aria-label={t("toolbar.new")}>
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
             <line x1="7.5" y1="2" x2="7.5" y2="13" />
             <line x1="2" y1="7.5" x2="13" y2="7.5" />
           </svg>
