@@ -22,12 +22,7 @@ jobs:
     runs-on: macos-latest
     env:
       # Empty signing identity = ad-hoc signing (no Apple Developer cert needed)
-      APPLE_SIGNING_IDENTITY: ""
-      APPLE_CERTIFICATE: ""
-      APPLE_CERTIFICATE_PASSWORD: ""
-      APPLE_ID: ""
-      APPLE_PASSWORD: ""
-      APPLE_TEAM_ID: ""
+      APPLE_SIGNING_IDENTITY: "-"
     steps:
       - uses: actions/checkout@v4
 
@@ -51,6 +46,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
           # Inherit ad-hoc signing env from job level
         with:
           tagName: ${{ github.ref_type == 'tag' && 'v__VERSION__' || '' }}
@@ -102,6 +99,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
           tagName: ${{ github.ref_type == 'tag' && 'v__VERSION__' || '' }}
           releaseName: "Rocktier Write v__VERSION__"
