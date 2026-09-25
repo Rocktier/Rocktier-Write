@@ -700,3 +700,59 @@ export function useUiLang(): Lang {
   }, [force]);
   return currentLang;
 }
+
+// Locale tag per UI lang for Intl APIs
+const LOCALE_MAP: Record<Lang, string> = {
+  en: "en-US",
+  zh: "zh-CN",
+  ja: "ja-JP",
+  ko: "ko-KR",
+  fr: "fr-FR",
+  de: "de-DE",
+  es: "es-ES",
+  pt: "pt-BR",
+};
+
+// ── v1.1 P2: Intl-aware date / relative time ──────────────────────────────────────────────
+
+/**
+ * Locale-aware date string using the active UI language (fallback to en).
+ * e.g. "Jan 25, 2026" (en) / "2026 年 1 月 25 日" (zh) / "2026年1月25日" (ja).
+ */
+export function formatDate(
+  date: Date | number | string,
+  lang: Lang = currentLang,
+  opts: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "numeric" },
+): string {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat(LOCALE_MAP[lang], opts).format(d);
+}
+
+/**
+ * Relative-time string using Intl.RelativeTimeFormat.
+ * e.g. "3 分钟前" / "2 hours ago" / "あと 1 日".
+ */
+export function formatRelative(
+  date: Date | number | string,
+  lang: Lang = currentLang,
+  opts: Intl.RelativeTimeFormatOptions = { numeric: "auto" },
+): string {
+  const d = new Date(date);
+  const now = Date.now();
+  const diff = d.getTime() - now;
+  const absSec = Math.abs(diff);
+  const rtf = new Intl.RelativeTimeFormat(LOCALE_MAP[lang], opts);
+  const cutoff = 7 * 24 * 3600 * 1000;
+  if (absSec > cutoff) return formatDate(d, lang);
+
+  const sec = Math.round(diff / 1000);
+  const min = Math.round(sec / 60);
+  const hr = Math.round(min / 60);
+  const day = Math.round(hr / 24);
+
+  if (Math.abs(sec) < 60) return rtf.format(sec, "second");
+  if (Math.abs(min) < 60) return rtf.format(min, "minute");
+  if (Math.abs(hr) < 24) return rtf.format(hr, "hour");
+  return rtf.format(day, "day");
+}

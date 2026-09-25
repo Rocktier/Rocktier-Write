@@ -55,13 +55,19 @@ jobs:
       - name: Install npm deps
         run: npm ci
 
+      # macOS ad-hoc signing: bypass Gatekeeper for unsigned dev builds
+      # Real signing with Apple Developer cert replaces this in production
+      - name: macOS ad-hoc sign
+        if: matrix.platform == 'macos-latest'
+        run: |
+          echo "Ad-hoc signing will be applied post-build"
+
       - name: Build (Tauri)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # Only publish a release when triggered by a tag; plain main push just builds
-          tagName: ${{ github.ref_type == 'tag' && format('v__VERSION__') || '' }}
+          tagName: ${{ github.ref_type == 'tag' && 'v__VERSION__' || '' }}
           releaseName: "Rocktier Write v__VERSION__"
           releaseBody: "Rocktier Write release."
           releaseDraft: true

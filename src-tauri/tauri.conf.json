@@ -53,7 +53,7 @@
   },
   "productName": "Rocktier Write",
   "mainBinaryName": "RocktierWrite",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "identifier": "com.rocktier.write",
   "app": {
     "windows": [
@@ -72,11 +72,20 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'self'"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://github.com https://objects.githubusercontent.com; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'self'"
     }
   },
   "plugins": {
     "dialog": null,
-    "fs": null
+    "fs": null,
+    "updater": {
+      "windows": {
+        "installMode": "passive"
+      },
+      "pubkey": "",
+      "endpoints": [
+        "https://github.com/Rocktier/Rocktier-Write/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

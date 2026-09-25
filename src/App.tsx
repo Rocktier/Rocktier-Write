@@ -1,3 +1,8 @@
+/**
+ * Rocktier Write v1.1 — Multi-document workspace.
+ * Refactored from single-doc: maintains docs[] + activeId.
+ * Integrates: TabBar, CodeMirror (window.__cmView), FindReplace, Theme, i18n, updater.
+ */
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
@@ -6,6 +11,7 @@ import { Editor } from "./components/Editor";
 import { ChapterTree } from "./components/ChapterTree";
 import { FindReplace } from "./components/FindReplace";
 import { StatusBar } from "./components/StatusBar";
+import { TabBar, type TabDoc } from "./components/TabBar";
 import { useTheme, toggleTheme } from "./hooks/useTheme";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
@@ -18,48 +24,61 @@ import { t, useUiLang } from "./i18n";
 const LAST_PATH_KEY = "rocktier-write-last-path";
 const RECENT_KEY = "rocktier-write-recent";
 const RECENT_MAX = 5;
+const UNTITLED_KEY = "__untitled__";
 
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-
 const MARKDOWN_EXTS = ["md", "markdown", "mdown", "mkd", "txt", "text"];
 const DOCX_EXTS = ["docx"];
 
-type FocusMode = "off" | "paragraph" | "sentence";
-
 function baseName(path: string): string {
   return path.split(/[/\\]/).pop() || "Untitled";
+}
+
+function docId(path: string | null): string {
+  return path ?? UNTITLED_KEY;
 }
 
 export default function App() {
   useTheme();
   const lang = useUiLang();
 
-  const [doc, setDoc] = useState<MarkdownDocument>({
-    path: null,
-    content: WELCOME_DOCUMENT,
-    modified: false,
-  });
+  // ── Multi-doc state ──────────────────────────────────────────────
+  const [docs, setDocs] = useState<MarkdownDocument[]>([
+    { path: null, content: WELCOME_DOCUMENT, modified: false },
+  ]);
+  const [activeId, setActiveId] = useState<string>(UNTITLED_KEY);
 
   const [sidebar, setSidebar] = useState(true);
   const [toast, setToast] = useState("");
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
   const [cursorLine, setCursorLine] = useState(1);
-  const [focusMode, setFocusMode] = useState<FocusMode>("off");
+  const [focusMode, setFocusMode] = useState<"off" | "paragraph" | "sentence">("off");
   const [wordGoal, setWordGoal] = useState(0);
   const [sessionStart] = useState(() => Date.now());
+  const [cmReady, setCmReady] = useState(false);
 
-  const toastRef = useRef(0);
+  const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkingRef = useRef(false);
-  const editorRef = useRef<HTMLTextAreaElement>(null);
-  const docRef = useRef(doc);
-  const lastSavedContentRef = useRef(doc.content);
-  const UNTITLED_KEY = "__untitled__";
-  const lastPathRef = useRef<string | null>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const eolRef = useRef<Eol>("\n");
+  const lastSavedRef = useRef<Map<string, string>>(new Map());
+  const lastPathRef = useRef<string | null>(null);
+  const eolRef = useRef<Map<string, Eol>>(new Map());
+
+  // Derive active doc for convenience
+  const activeDoc = useMemo(
+    () => docs.find((d) => docId(d.path) === activeId) ?? docs[0],
+    [docs, activeId],
+  );
+
+  const setActiveDoc = useCallback((updater: (d: MarkdownDocument) => MarkdownDocument) => {
+    setDocs((prev) => {
+      const id = activeId;
+      return prev.map((d) => (docId(d.path) === id ? updater(d) : d));
+    });
+  }, [activeId]);
 
   const stats = useMemo(() => {
-    const text = doc.content.trim();
+    const text = activeDoc.content.trim();
     if (!text) return { words: 0, minutes: 0, chars: 0 };
     const cn = (text.match(/[\u3400-\u9fff\uf900-\ufaff]/g) || []).length;
     const en = (text.match(/[a-zA-Z0-9_]+/g) || []).length;
@@ -67,9 +86,8 @@ export default function App() {
     const ratio = words > 0 ? cn / words : 0;
     const wpm = 350 + ratio * 150;
     const minutes = words === 0 ? 0 : Math.max(1, Math.ceil(words / wpm));
-    const chars = text.length;
-    return { words, minutes, chars };
-  }, [doc.content]);
+    return { words, minutes, chars: text.length };
+  }, [activeDoc.content]);
 
   const extractHeadings = useCallback((content: string) => {
     const lines = content.split("\n");
@@ -84,54 +102,19 @@ export default function App() {
     return headings;
   }, []);
 
-  const headings = useMemo(() => extractHeadings(doc.content), [doc.content, extractHeadings]);
+  const headings = useMemo(() => extractHeadings(activeDoc.content), [activeDoc.content, extractHeadings]);
 
   const currentChapter = useMemo(() => {
     if (!headings.length) return "";
-    let chapter = headings[0].text;
-    for (const h of headings) {
-      if (h.line <= cursorLine) chapter = h.text;
-      else break;
-    }
-    return chapter;
+    let ch = headings[0].text;
+    for (const h of headings) { if (h.line <= cursorLine) ch = h.text; else break; }
+    return ch;
   }, [headings, cursorLine]);
-
-  useEffect(() => { docRef.current = doc; }, [doc]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
-    if (toastRef.current) window.clearTimeout(toastRef.current);
-    toastRef.current = window.setTimeout(() => setToast(""), 2500);
-  }, []);
-
-  const clearRecovery = useCallback((key: string | null | undefined) => {
-    if (!key || !isTauri) return;
-    invoke("clear_recovery", { path: key }).catch(() => {});
-  }, []);
-
-  const clearPreviousDrafts = useCallback(() => {
-    clearRecovery(docRef.current.path);
-    if (docRef.current.modified || !docRef.current.path) clearRecovery(UNTITLED_KEY);
-  }, [clearRecovery]);
-
-  // Close-guard with Rust
-  useEffect(() => {
-    if (!isTauri) return;
-    let disposed = false;
-    let unlisten: (() => void) | undefined;
-    (async () => {
-      const fn = await getCurrentWindow().listen<null>("app-close-requested", async () => {
-        invoke("close_ack").catch(() => {});
-        if (docRef.current.modified) {
-          if (!(await confirmDialog(t("confirm.discard")))) return;
-        }
-        try { await invoke("force_close"); } catch { /* window gone */ }
-      });
-      if (disposed) { fn(); return; }
-      unlisten = fn;
-      await invoke("mark_ready").catch(() => {});
-    })();
-    return () => { disposed = true; unlisten?.(); };
+    if (toastRef.current) clearTimeout(toastRef.current);
+    toastRef.current = setTimeout(() => setToast(""), 2500);
   }, []);
 
   const rememberPath = useCallback((path: string | null) => {
@@ -141,13 +124,32 @@ export default function App() {
         const list: string[] = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
         const next = [path, ...list.filter((p) => p !== path)].slice(0, RECENT_MAX);
         localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-      } else {
-        localStorage.removeItem(LAST_PATH_KEY);
-      }
+      } else localStorage.removeItem(LAST_PATH_KEY);
     } catch { /* non-fatal */ }
   }, []);
 
-  // Recovery restore on launch
+  // ── Close-guard with Rust ────────────────────────────────────────
+  useEffect(() => {
+    if (!isTauri) return;
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      const fn = await getCurrentWindow().listen<null>("app-close-requested", async () => {
+        invoke("close_ack").catch(() => {});
+        const hasUnsaved = docs.some((d) => d.modified);
+        if (hasUnsaved) {
+          if (!(await confirmDialog(t("confirm.discard")))) return;
+        }
+        try { await invoke("force_close"); } catch { /* window gone */ }
+      });
+      if (disposed) { fn(); return; }
+      unlisten = fn;
+      await invoke("mark_ready").catch(() => {});
+    })();
+    return () => { disposed = true; unlisten?.(); };
+  }, [docs]);
+
+  // ── Recovery on launch ───────────────────────────────────────────
   useEffect(() => {
     if (!isTauri) return;
     let cancelled = false;
@@ -161,7 +163,7 @@ export default function App() {
         try {
           if (await exists(raw)) {
             const { content, eol } = normalizeEol(await readTextFile(raw));
-            if (!cancelled) { eolRef.current = eol; restored = { path: raw, content, modified: false }; }
+            if (!cancelled) { eolRef.current.set(docId(raw), eol); restored = { path: raw, content, modified: false }; }
             break;
           }
         } catch { /* try next */ }
@@ -182,16 +184,11 @@ export default function App() {
             if (!untitled && !restored) {
               const name = draft.path.replace(/^.*[\\/]/, "");
               let stale = false;
-              try {
-                const info = await stat(draft.path);
-                stale = (info.mtime ? info.mtime.getTime() : 0) > draft.modified_ms;
-              } catch { /* not found = fresh */ }
+              try { const info = await stat(draft.path); stale = (info.mtime ? info.mtime.getTime() : 0) > draft.modified_ms; } catch { /* not found */ }
               message = t(stale ? "confirm.recoverNamedOlder" : "confirm.recoverNamedNewer", { name });
             }
             if (await confirmDialog(message)) {
-              if (!cancelled) {
-                restored = { path: untitled ? null : draft.path, content: draft.content, modified: true };
-              }
+              if (!cancelled) restored = { path: untitled ? null : draft.path, content: draft.content, modified: true };
             } else {
               await invoke("clear_recovery", { path: draft.path }).catch(() => {});
             }
@@ -200,130 +197,151 @@ export default function App() {
       } catch { /* best-effort */ }
 
       if (!cancelled && restored) {
-        setDoc(restored);
+        setDocs([restored]);
+        setActiveId(docId(restored.path));
+        lastPathRef.current = restored.path;
         if (restored.path) rememberPath(restored.path);
       }
     })();
     return () => { cancelled = true; };
   }, [rememberPath]);
 
-  const onChange = useCallback((content: string) => {
-    setDoc((d) => ({ ...d, content, modified: true }));
-  }, []);
-
-  const confirmDiscard = useCallback(async (): Promise<boolean> => {
-    if (!docRef.current.modified) return true;
-    return confirmDialog(t("confirm.discard"));
-  }, []);
-
-  const openMarkdownContent = useCallback(async (content: string, path: string | null, eol: Eol, opts?: { modified?: boolean }) => {
-    clearPreviousDrafts();
-    eolRef.current = eol;
-    lastSavedContentRef.current = content;
-    lastPathRef.current = path;
-    setDoc({ path, content, modified: opts?.modified ?? false });
-    if (path) rememberPath(path);
-  }, [clearPreviousDrafts, rememberPath]);
-
+  // ── Importer / Open a document ───────────────────────────────────
   const doOpen = useCallback(async () => {
-    if (!(await confirmDiscard())) return;
+    const hasUnsaved = docs.some((d) => d.modified);
+    if (hasUnsaved) { if (!(await confirmDialog(t("confirm.discard")))) return; }
+
     const r = await openFile();
     if (r) {
       if (r.path.toLowerCase().endsWith(".docx")) {
         try {
           const md = await invoke<string>("import_docx", { path: r.path });
-          await openMarkdownContent(md, null, r.eol, { modified: true });
+          const newDoc: MarkdownDocument = { path: null, content: md, modified: true };
+          setDocs([newDoc]);
+          setActiveId(docId(newDoc.path));
           showToast(t("toast.docxImported"));
-        } catch {
-          showToast(t("toast.cannotOpenFile"));
-        }
+        } catch { showToast(t("toast.cannotOpenFile")); }
         return;
       }
-      await openMarkdownContent(r.content, r.path, r.eol);
+      const newDoc: MarkdownDocument = { path: r.path, content: r.content, modified: false };
+      eolRef.current.set(docId(r.path), r.eol);
+      lastSavedRef.current.set(docId(r.path), r.content);
+      lastPathRef.current = r.path;
+      setDocs([newDoc]);
+      setActiveId(docId(r.path));
+      rememberPath(r.path);
       showToast(t("toast.fileOpened"));
     }
-  }, [confirmDiscard, showToast, openMarkdownContent]);
+  }, [docs, showToast, rememberPath]);
 
+  const openContent = useCallback((content: string, path: string | null, eol: Eol, modified?: boolean) => {
+    const id = docId(path);
+    eolRef.current.set(id, eol);
+    lastSavedRef.current.set(id, content);
+    lastPathRef.current = path;
+    const newDoc: MarkdownDocument = { path, content, modified: modified ?? false };
+    setDocs((prev) => {
+      const exists = prev.some((d) => docId(d.path) === id);
+      if (exists) return prev.map((d) => docId(d.path) === id ? newDoc : d);
+      return [...prev, newDoc];
+    });
+    setActiveId(id);
+    if (path) rememberPath(path);
+  }, [rememberPath]);
+
+  // ── Save ─────────────────────────────────────────────────────────
   const doSave = useCallback(async () => {
-    const { path, content } = docRef.current;
-    const payload = applyEol(content, eolRef.current);
+    const { path, content } = activeDoc;
+    const id = docId(path);
+    const eol = eolRef.current.get(id) ?? "\n";
+    const payload = applyEol(content, eol);
     try {
+      let finalPath = path;
       if (!path) {
         const p = await saveFileAs(payload);
         if (!p) return;
-        lastSavedContentRef.current = content;
-        lastPathRef.current = p;
-        clearRecovery(UNTITLED_KEY);
-        setDoc((d) => (d.content === content ? { ...d, path: p, modified: false } : { ...d, path: p }));
+        finalPath = p;
+        setActiveDoc((d) => ({ ...d, path: p, modified: false }));
         rememberPath(p);
       } else {
         await saveFile(path, payload);
-        lastSavedContentRef.current = content;
-        clearRecovery(path);
-        setDoc((d) => (d.content === content ? { ...d, modified: false } : d));
+        setActiveDoc((d) => (d.content === content ? { ...d, modified: false } : d));
       }
+      lastSavedRef.current.set(docId(finalPath), content);
+      invoke("clear_recovery", { path: docId(finalPath) }).catch(() => {});
       showToast(t("toast.saved"));
-    } catch {
-      showToast(t("toast.saveFailed"));
-    }
-  }, [showToast, rememberPath, clearRecovery]);
+    } catch { showToast(t("toast.saveFailed")); }
+  }, [activeDoc, showToast, rememberPath]);
 
   const doSaveAs = useCallback(async () => {
-    const content = docRef.current.content;
+    const { content, path } = activeDoc;
+    const id = docId(path);
+    const eol = eolRef.current.get(id) ?? "\n";
     try {
-      const name = docRef.current.path ? baseName(docRef.current.path) : undefined;
-      const p = await saveFileAs(applyEol(content, eolRef.current), name);
-      if (p) {
-        lastSavedContentRef.current = content;
-        lastPathRef.current = p;
-        clearRecovery(UNTITLED_KEY);
-        clearRecovery(docRef.current.path);
-        setDoc((d) => (d.content === content ? { ...d, path: p, modified: false } : { ...d, path: p }));
+      const p = await saveFileAs(applyEol(content, eol), path ? baseName(path) : undefined);
+      if (!p) {
+        setActiveDoc((d) => ({ ...d, path: p, modified: false }));
+        lastSavedRef.current.set(docId(p), content);
         rememberPath(p);
         showToast(t("toast.savedAs"));
       }
-    } catch {
-      showToast(t("toast.saveFailed"));
-    }
-  }, [showToast, rememberPath, clearRecovery]);
+    } catch { showToast(t("toast.saveFailed")); }
+  }, [activeDoc, showToast, rememberPath]);
 
+  // ── Export ───────────────────────────────────────────────────────
   const doExportDocx = useCallback(async () => {
     try {
-      const content = docRef.current.content;
-      const path = docRef.current.path;
+      const { content, path } = activeDoc;
       let targetPath = path ? path.replace(/\.[^.]+$/, ".docx") : null;
       if (!targetPath) {
-        // Use Tauri dialog to pick save location
         const { save: dialogSave } = await import("@tauri-apps/plugin-dialog");
-        const p = await dialogSave({
-          filters: [{ name: "DOCX Document", extensions: ["docx"] }],
-          defaultPath: path ? baseName(path).replace(/\.[^.]+$/, "") : "untitled",
-        });
+        const p = await dialogSave({ filters: [{ name: "DOCX Document", extensions: ["docx"] }], defaultPath: path ? baseName(path).replace(/\.[^.]+$/, "") : "untitled" });
         if (!p) return;
         targetPath = p;
       }
       await invoke("export_docx", { markdown: content, outputPath: targetPath });
       showToast(t("toast.docxExported"));
-    } catch {
-      showToast(t("toast.saveFailed"));
-    }
+    } catch { showToast(t("toast.saveFailed")); }
+  }, [activeDoc, showToast]);
+
+  // ── New doc ──────────────────────────────────────────────────────
+  const doNew = useCallback(() => {
+    const newDoc: MarkdownDocument = { path: null, content: "", modified: false };
+    setDocs((prev) => [...prev, newDoc]);
+    setActiveId(docId(newDoc.path));
+    showToast(t("toast.newDoc"));
   }, [showToast]);
 
-  const doNew = useCallback(async () => {
-    if (!(await confirmDiscard())) return;
-    clearPreviousDrafts();
-    eolRef.current = "\n";
-    setDoc({ path: null, content: "", modified: false });
-    showToast(t("toast.newDoc"));
-  }, [confirmDiscard, showToast, clearPreviousDrafts]);
+  // ── Close a doc ──────────────────────────────────────────────────
+  const closeDoc = useCallback(async (id: string) => {
+    const doc = docs.find((d) => docId(d.path) === id);
+    if (!doc) return;
+    if (doc.modified) {
+      if (!(await confirmDialog(t("confirm.discard")))) return;
+    }
+    setDocs((prev) => {
+      const remaining = prev.filter((d) => docId(d.path) !== id);
+      if (remaining.length === 0) {
+        const untitled: MarkdownDocument = { path: null, content: "", modified: false };
+        setActiveId(docId(untitled.path));
+        return [untitled];
+      }
+      return remaining;
+    });
+    // If closing active doc, switch to first remaining
+    if (activeId === id) {
+      setDocs((prev) => { setActiveId(docId(prev.find((d) => docId(d.path) !== id)?.path ?? null)); return prev; });
+    }
+  }, [docs, activeId]);
 
-  // Rebuild native menu on language change
+  const switchDoc = useCallback((id: string) => { setActiveId(id); }, []);
+
+  // ── Menu ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isTauri) return;
     invoke("build_menu", { lang }).catch(() => {});
   }, [lang]);
 
-  // Menu events
   useEffect(() => {
     if (!isTauri) return;
     let disposed = false;
@@ -352,55 +370,43 @@ export default function App() {
   }), [doSave, doSaveAs, doNew, doOpen]);
   useKeyboardShortcuts(shortcuts);
 
-  const displayName = doc.path ? baseName(doc.path) : t("doc.untitled");
-
+  // ── Open file externally (drop / drag / argv) ────────────────────
   const openPath = useCallback(async (filePath: string): Promise<boolean> => {
     const ext = filePath.split(".").pop()?.toLowerCase();
     if (!ext || (!MARKDOWN_EXTS.includes(ext) && !DOCX_EXTS.includes(ext))) {
-      showToast(t("toast.unsupportedType"));
-      return false;
+      showToast(t("toast.unsupportedType")); return false;
     }
-    if (!(await confirmDiscard())) return false;
+    const hasUnsaved = docs.some((d) => d.modified);
+    if (hasUnsaved) { if (!(await confirmDialog(t("confirm.discard")))) return false; }
     try {
       if (DOCX_EXTS.includes(ext)) {
         const md = await invoke<string>("import_docx", { path: filePath });
-        await openMarkdownContent(md, null, "\n", { modified: true });
-        showToast(t("toast.docxImported"));
-        return true;
+        openContent(md, null, "\n", true);
+        showToast(t("toast.docxImported")); return true;
       }
       if (!(await exists(filePath))) { showToast(t("toast.cannotOpenFile")); return false; }
       const { content, eol } = normalizeEol(await readTextFile(filePath));
-      await openMarkdownContent(content, filePath, eol);
-      showToast(t("toast.fileOpened"));
-      return true;
-    } catch {
-      showToast(t("toast.cannotReadFile"));
-      return false;
-    }
-  }, [confirmDiscard, showToast, openMarkdownContent]);
+      openContent(content, filePath, eol);
+      showToast(t("toast.fileOpened")); return true;
+    } catch { showToast(t("toast.cannotReadFile")); return false; }
+  }, [docs, showToast, openContent]);
 
-  // File drag & drop (browser dev mode: DOCX can't be read locally)
   const onDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (!file) return;
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!ext || (!MARKDOWN_EXTS.includes(ext) && !DOCX_EXTS.includes(ext))) {
-      showToast(t("toast.unsupportedType")); return;
-    }
-    if (!(await confirmDiscard())) return;
+    if (!ext || (!MARKDOWN_EXTS.includes(ext) && !DOCX_EXTS.includes(ext))) { showToast(t("toast.unsupportedType")); return; }
+    const hasUnsaved = docs.some((d) => d.modified);
+    if (hasUnsaved) if (!(await confirmDialog(t("confirm.discard")))) return;
     try {
-      if (DOCX_EXTS.includes(ext)) {
-        showToast(t("toast.unsupportedType"));
-        return;
-      }
-      const text = await file.text();
-      const { content, eol } = normalizeEol(text);
-      eolRef.current = eol;
-      setDoc({ path: null, content, modified: false });
+      if (DOCX_EXTS.includes(ext)) { showToast(t("toast.unsupportedType")); return; }
+      const { content, eol } = normalizeEol(await file.text());
+      eolRef.current.set(docId(null), eol);
+      openContent(content, null, eol);
       showToast(t("toast.fileOpened"));
     } catch { showToast(t("toast.cannotReadFile")); }
-  }, [confirmDiscard, showToast]);
+  }, [docs, showToast, openContent]);
 
   useEffect(() => {
     if (!isTauri) return;
@@ -422,85 +428,83 @@ export default function App() {
     let unlisten: (() => void) | undefined;
     getCurrentWindow().listen<string>("open-file", async (event) => {
       const path = event.payload;
-      if (!path || path === docRef.current.path) return;
+      if (!path || path === activeDoc.path) return;
       await openPath(path);
     }).then((fn) => { if (disposed) fn(); else unlisten = fn; });
     return () => { disposed = true; unlisten?.(); };
-  }, [openPath]);
+  }, [openPath, activeDoc.path]);
 
-  // Auto-save draft
-  const autoSave = useCallback(async (path: string | null, content: string) => {
-    if (!path) path = UNTITLED_KEY;
-    if (!isTauri) return;
-    try { await invoke("save_recovery", { path, content }); } catch { /* best-effort */ }
-  }, []);
+  // ── Auto-save draft (active doc only) ────────────────────────────
+  const activeIdRef = useRef(activeId);
+  const activeContentRef = useRef(activeDoc.content);
+  const activePathRef = useRef(activeDoc.path);
+  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
+  useEffect(() => { activeContentRef.current = activeDoc.content; }, [activeDoc.content]);
+  useEffect(() => { activePathRef.current = activeDoc.path; }, [activeDoc.path]);
 
   useEffect(() => {
+    if (!isTauri) return;
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    if (!doc.modified) return;
-    autoSaveTimerRef.current = setTimeout(() => { autoSave(doc.path, doc.content); }, 5000);
+    if (!activeDoc.modified) return;
+    autoSaveTimerRef.current = setTimeout(() => {
+      const path = activePathRef.current ?? UNTITLED_KEY;
+      invoke("save_recovery", { path, content: activeContentRef.current }).catch(() => {});
+    }, 5000);
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
-  }, [doc.content, doc.path, doc.modified, autoSave]);
+  }, [activeDoc.content, activeDoc.path, activeDoc.modified]);
 
-  // External change detection
-  const externalCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // ── External change detection ────────────────────────────────────
   const checkExternalChange = useCallback(async () => {
     if (checkingRef.current) return;
-    const { path } = docRef.current;
+    const path = activeDoc.path;
     if (!path || !isTauri) return;
     checkingRef.current = true;
     try {
       if (!(await exists(path))) return;
       const { content: diskContent } = normalizeEol(await readTextFile(path));
-      if (lastPathRef.current !== path) {
-        lastPathRef.current = path;
-        lastSavedContentRef.current = diskContent;
-        return;
-      }
-      if (diskContent === lastSavedContentRef.current) return;
-      if (diskContent === docRef.current.content) {
-        lastSavedContentRef.current = diskContent;
-        return;
-      }
+      const id = docId(path);
+      if (lastPathRef.current !== path) { lastPathRef.current = path; lastSavedRef.current.set(id, diskContent); return; }
+      if (diskContent === (lastSavedRef.current.get(id) ?? "")) return;
+      if (diskContent === activeDoc.content) { lastSavedRef.current.set(id, diskContent); return; }
       const choice = await confirmDialog(t("confirm.externalChange"));
       if (choice) {
         const { eol } = normalizeEol(await readTextFile(path));
-        eolRef.current = eol;
-        setDoc({ path, content: diskContent, modified: false });
-        lastSavedContentRef.current = diskContent;
+        eolRef.current.set(id, eol);
+        setActiveDoc(() => ({ path, content: diskContent, modified: false }));
+        lastSavedRef.current.set(id, diskContent);
+        lastPathRef.current = path;
         showToast(t("toast.reloaded"));
-      } else {
-        lastSavedContentRef.current = diskContent;
-      }
-    } catch { /* ignore */ } finally {
-      checkingRef.current = false;
-    }
-  }, [showToast]);
+      } else { lastSavedRef.current.set(id, diskContent); }
+    } catch { /* ignore */ } finally { checkingRef.current = false; }
+  }, [activeDoc, showToast]);
 
   useEffect(() => {
     if (!isTauri) return;
-    externalCheckRef.current = setInterval(checkExternalChange, 3000);
-    return () => { if (externalCheckRef.current) clearInterval(externalCheckRef.current); };
+    const id = setInterval(checkExternalChange, 3000);
+    return () => clearInterval(id);
   }, [checkExternalChange]);
 
-  const onCursorMove = useCallback(() => {
-    const el = editorRef.current;
-    if (!el) return;
-    const pos = el.selectionStart;
-    const textBefore = el.value.substring(0, pos);
-    const lines = textBefore.split("\n");
-    setCursorLine(lines.length);
-  }, []);
+  // ── CM cursor tracking ───────────────────────────────────────────
+  const onCursorMove = useCallback((line: number) => setCursorLine(line), []);
 
-  useEffect(() => {
-    document.title = doc.path ? `${baseName(doc.path)} — Rocktier Write` : "Rocktier Write";
-  }, [doc.path]);
+  // ── Render ───────────────────────────────────────────────────────
+  const displayName = activeDoc.path ? baseName(activeDoc.path) : t("doc.untitled");
+  const tabDocs: TabDoc[] = docs.map((d) => ({
+    id: docId(d.path),
+    path: d.path,
+    name: d.path ? baseName(d.path) : t("doc.untitled"),
+    modified: d.modified,
+  }));
 
   const cycleFocus = useCallback(() => {
     setFocusMode((m) => m === "off" ? "paragraph" : m === "paragraph" ? "sentence" : "off");
   }, []);
 
   const sessionMinutes = Math.max(1, Math.round((Date.now() - sessionStart) / 60000));
+
+  useEffect(() => {
+    document.title = activeDoc.path ? `${baseName(activeDoc.path)} — Rocktier Write` : "Rocktier Write";
+  }, [activeDoc.path]);
 
   return (
     <div className="app-shell">
@@ -509,7 +513,7 @@ export default function App() {
         onNew={doNew}
         onOpen={doOpen}
         onSave={doSave}
-        modified={doc.modified}
+        modified={activeDoc.modified}
         displayName={displayName}
         words={stats.words}
         minutes={stats.minutes}
@@ -525,42 +529,38 @@ export default function App() {
         onImportDocx={doOpen}
         onExportDocx={doExportDocx}
       />
+      <TabBar
+        tabs={tabDocs}
+        activeId={activeId}
+        onSelect={switchDoc}
+        onClose={closeDoc}
+        onNew={doNew}
+      />
       <div className="app-body" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
         <ChapterTree
           headings={headings}
           currentLine={cursorLine}
           visible={sidebar}
           onJumpTo={(line) => {
-            const el = editorRef.current;
-            if (!el) return;
-            const allLines = el.value.split("\n");
-            let pos = 0;
-            for (let i = 0; i < line - 1 && i < allLines.length; i++) {
-              pos += allLines[i].length + 1;
-            }
-            el.focus();
-            el.setSelectionRange(pos, pos);
-            const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 28;
-            el.scrollTop = Math.max(0, (line - 4) * lineHeight);
+            const cm = (window as unknown as { __cmView?: { state: unknown; dispatch: unknown } }).__cmView;
+            if (!cm) return;
+            // Use CM to position cursor
+            const view = cm as unknown as { state: { doc: { line: (n: number) => { from: number } }; selection: unknown }; dispatch: (t: unknown) => void };
+            const pos = view.state.doc.line(line).from;
+            view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
           }}
         />
         <main className="editor-container">
+          {cmReady && findReplaceOpen && <FindReplace onClose={() => setFindReplaceOpen(false)} />}
           <Editor
-            content={doc.content}
-            onChange={onChange}
-            textareaRef={editorRef as React.RefObject<HTMLTextAreaElement>}
+            content={activeDoc.content}
+            onChange={(content) => setActiveDoc((d) => ({ ...d, content, modified: true }))}
+            onEditorReady={() => setCmReady(true)}
             onCursorMove={onCursorMove}
             focusMode={focusMode}
             cursorLine={cursorLine}
+            placeholder={t("editor.placeholder")}
           />
-          {findReplaceOpen && (
-            <FindReplace
-              content={doc.content}
-              textareaRef={editorRef as React.RefObject<HTMLTextAreaElement>}
-              onChange={onChange}
-              onClose={() => setFindReplaceOpen(false)}
-            />
-          )}
         </main>
       </div>
       <StatusBar
