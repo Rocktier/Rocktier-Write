@@ -1,6 +1,7 @@
 # Rocktier Write — CI build & release
-# Builds macOS dmg + Windows msi on GitHub Actions.
-# Triggered on push to main or tag v*.
+# macOS aarch64 dmg (Apple Silicon only; Intel <5% share, macOS Tahoe drops Intel)
+# Windows MSI (WiX) for direct download
+# Windows MSIX job reserved for future Microsoft Store submission (follow-up commit)
 
 name: Build & Release
 
@@ -10,59 +11,33 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
-# tauri-action needs contents: write to create draft releases
 permissions:
   contents: write
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: "macos-latest"
-            args: "--target aarch64-apple-darwin"
-            target: "aarch64-apple-darwin"
-          - platform: "macos-latest"
-            args: "--target x86_64-apple-darwin"
-            target: "x86_64-apple-darwin"
-          - platform: "windows-latest"
-            args: ""
-            target: "x86_64-pc-windows-msvc"
-
-    runs-on: ${{ matrix.platform }}
-
+  # ── macOS (Apple Silicon only) ─────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: "**/package-lock.json"
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: aarch64-apple-darwin
 
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@v2
         with:
           workspaces: "src-tauri -> target"
 
-      - name: Install npm deps
-        run: npm ci
+      - run: npm ci
 
-      # macOS ad-hoc signing: bypass Gatekeeper for unsigned dev builds
-      # Real signing with Apple Developer cert replaces this in production
-      - name: macOS ad-hoc sign
-        if: matrix.platform == 'macos-latest'
-        run: |
-          echo "Ad-hoc signing will be applied post-build"
-
-      - name: Build (Tauri)
+      - name: Build (Tauri macOS aarch64)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -72,4 +47,53 @@ jobs:
           releaseBody: "Rocktier Write release."
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }}
+          args: "--target aarch64-apple-darwin"
+
+  # ── Windows (MSI via WiX) ──────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      - run: npm ci
+
+      - name: Build (Tauri Windows MSI)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_type == 'tag' && 'v__VERSION__' || '' }}
+          releaseName: "Rocktier Write v__VERSION__"
+          releaseBody: "Rocktier Write release."
+          releaseDraft: true
+          prerelease: false
+          args: ""
+
+# MSIX for Store: follow-up commit once MSI build is stable.
+#
+# Plan:
+#   1. Add bundle.windows.msix config block to tauri.conf.json
+#        ((generatePackage: false, manifest with app identity — see
+#         https://v2.tauri.app/distribute/msix/ )
+#   2. Add third job: build-msix Windows runner runs
+#        cargo-tauri tauri bundle --bundle msix
+#        produces target/release/bundle/msix/Rocktier Write_1.1.0_x64.msix
+#   3. Upload .msix to release assets
+#   4. Submit .msix manually to Partner Center (auto-signed by Store)
+#
+# Why not now: msix bundle config requires testing Package Identity /
+# capabilities; MSI already covers direct download users.
