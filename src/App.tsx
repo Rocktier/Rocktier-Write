@@ -9,6 +9,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Toolbar } from "./components/Toolbar";
 import { Editor } from "./components/Editor";
 import { ChapterTree } from "./components/ChapterTree";
+import { WorkspaceStats } from "./components/WorkspaceStats";
 import { FindReplace } from "./components/FindReplace";
 import { StatusBar } from "./components/StatusBar";
 import { TabBar, type TabDoc } from "./components/TabBar";
@@ -77,17 +78,37 @@ export default function App() {
     });
   }, [activeId]);
 
+  // Count words in a string (CJK + alphanumeric) — shared helper
+  const countWords = useCallback((text: string): number => {
+    const t = text.trim();
+    if (!t) return 0;
+    const cn = (t.match(/[\u3400-\u9fff\uf900-\ufaff]/g) || []).length;
+    const en = (t.match(/[a-zA-Z0-9_]+/g) || []).length;
+    return cn + en;
+  }, []);
+
   const stats = useMemo(() => {
     const text = activeDoc.content.trim();
     if (!text) return { words: 0, minutes: 0, chars: 0 };
+    const words = countWords(text);
     const cn = (text.match(/[\u3400-\u9fff\uf900-\ufaff]/g) || []).length;
-    const en = (text.match(/[a-zA-Z0-9_]+/g) || []).length;
-    const words = cn + en;
     const ratio = words > 0 ? cn / words : 0;
     const wpm = 350 + ratio * 150;
     const minutes = words === 0 ? 0 : Math.max(1, Math.ceil(words / wpm));
     return { words, minutes, chars: text.length };
-  }, [activeDoc.content]);
+  }, [activeDoc.content, countWords]);
+
+  // Workspace-wide aggregations (v1.1.x)
+  const { totalWords, completedDocs } = useMemo(() => {
+    let tw = 0;
+    let cd = 0;
+    for (const d of docs) {
+      const w = countWords(d.content);
+      tw += w;
+      if (wordGoal > 0 && w >= wordGoal) cd++;
+    }
+    return { totalWords: tw, completedDocs: cd };
+  }, [docs, countWords, wordGoal]);
 
   const extractHeadings = useCallback((content: string) => {
     const lines = content.split("\n");
@@ -537,6 +558,14 @@ export default function App() {
         onNew={doNew}
       />
       <div className="app-body" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+        <aside className={`sidebar ${sidebar ? "open" : "closed"}`}>
+          <WorkspaceStats
+            docCount={docs.length}
+            totalWords={totalWords}
+            totalGoal={wordGoal}
+            completedDocs={completedDocs}
+            goalDocs={wordGoal > 0 ? docs.length : 0}
+          />
         <ChapterTree
           headings={headings}
           currentLine={cursorLine}
@@ -550,6 +579,7 @@ export default function App() {
             view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
           }}
         />
+        </aside>
         <main className="editor-container">
           {cmReady && findReplaceOpen && <FindReplace onClose={() => setFindReplaceOpen(false)} />}
           <Editor
