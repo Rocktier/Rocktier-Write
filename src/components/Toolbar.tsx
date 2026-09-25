@@ -10,11 +10,7 @@ interface Props {
   onOpen: () => void;
   onSave: () => void;
   onImportDocx: () => void;
-  onExportDocx: () => void;
   modified: boolean;
-  displayName: string;
-  words: number;
-  minutes: number;
   onToggleTheme: () => void;
   onFindReplace: () => void;
   hasFrontmatter: boolean;
@@ -23,20 +19,19 @@ interface Props {
   focusMode: FocusMode;
   onCycleFocus: () => void;
   wordGoal: number;
+  words: number;
   onSetWordGoal: (n: number) => void;
   // v11.3 preview + recent
   onExportPdf?: () => void;
   recentItems?: string[];
   onOpenRecent?: (path: string) => void;
   onClearRecent?: () => void;
-  viewMode?: "edit" | "preview";
-  onToggleView?: () => void;
 }
 
 const FOCUS_LABELS: Record<FocusMode, () => string> = {
-  off: () => t("toolbar.focusOff"),
-  paragraph: () => t("toolbar.focusParagraph"),
-  sentence: () => t("toolbar.focusSentence"),
+  off: () => t("status.focusOff"),
+  paragraph: () => t("status.focusParagraph"),
+  sentence: () => t("status.focusSentence"),
 };
 
 export const Toolbar = memo(function Toolbar({
@@ -45,11 +40,7 @@ export const Toolbar = memo(function Toolbar({
   onOpen,
   onSave,
   onImportDocx,
-  onExportDocx,
   modified,
-  displayName,
-  words,
-  minutes,
   onToggleTheme,
   onFindReplace,
   hasFrontmatter,
@@ -58,13 +49,12 @@ export const Toolbar = memo(function Toolbar({
   focusMode,
   onCycleFocus,
   wordGoal,
+  words,
   onSetWordGoal,
   onExportPdf,
   recentItems,
   onOpenRecent,
   onClearRecent,
-  viewMode,
-  onToggleView,
 }: Props) {
   useUiLang();
   const [goalInputOpen, setGoalInputOpen] = useState(false);
@@ -137,10 +127,25 @@ export const Toolbar = memo(function Toolbar({
           </svg>
           <span className="brand-name">Rocktier<span className="tag">Write</span></span>
         </div>
-        <div className={`doc-pill ${modified ? "modified" : ""}`} title={modified ? t("toolbar.unsaved") : undefined}>
-          {modified && <span className="dot" />}
-          <span className="name">{displayName}</span>
-        </div>
+        <button className="tbar-btn" onClick={onNew} title={t("toolbar.new")} aria-label={t("toolbar.new")}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
+            <line x1="7.5" y1="2" x2="7.5" y2="13" />
+            <line x1="2" y1="7.5" x2="13" y2="7.5" />
+          </svg>
+        </button>
+        <button className="tbar-btn" onClick={onOpen} title={t("toolbar.open")} aria-label={t("toolbar.open")}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
+            <path d="M2 4h4l1.5 1.5H12a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+          </svg>
+        </button>
+        <button className="tbar-btn labeled" onClick={onImportDocx} title={t("toolbar.importDocx")} aria-label={t("toolbar.importDocx")}>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="7.5" y1="12.5" x2="7.5" y2="3.5" />
+              <polyline points="5,5.5 7.5,2.5 10,5.5" fill="none" />
+              <line x1="2.5" y1="13" x2="12.5" y2="13" />
+            </svg>
+            <span className="tbar-label">{t("toolbar.importDocx")}</span>
+        </button>
       </div>
 
       <div className="toolbar-center">
@@ -168,12 +173,13 @@ export const Toolbar = memo(function Toolbar({
       <div className="toolbar-actions">
         {wordGoal > 0 ? (
           <button
-            className="tbar-btn goal-btn"
+            className="tbar-btn goal-btn labeled"
             onClick={() => onSetWordGoal(0)}
             title={t("toolbar.clearGoal")}
             aria-label={t("toolbar.clearGoal")}
           >
             <span className="stat-num">{wordGoal >= 1000 ? `${(wordGoal / 1000).toFixed(1)}k` : wordGoal}</span>
+              <span className="tbar-label">{t("toolbar.goalShort")}</span>
           </button>
         ) : goalInputOpen ? (
           <input
@@ -193,7 +199,7 @@ export const Toolbar = memo(function Toolbar({
           />
         ) : (
           <button
-            className="tbar-btn"
+            className="tbar-btn labeled"
             onClick={() => { setGoalDraft("1000"); setGoalInputOpen(true); }}
             title={t("toolbar.setGoal")}
             aria-label={t("toolbar.setGoal")}
@@ -203,37 +209,28 @@ export const Toolbar = memo(function Toolbar({
               <line x1="7.5" y1="4" x2="7.5" y2="7.5" strokeLinecap="round" />
               <line x1="7.5" y1="7.5" x2="10" y2="9" strokeLinecap="round" />
             </svg>
+              <span className="tbar-label">{t("toolbar.goalShort")}</span>
           </button>
         )}
-        <div className="tbar-btn stat" role="status" title={t("toolbar.statAria", { n: words, m: minutes })}>
-          <span className="stat-num">{words >= 1000 ? `${(words / 1000).toFixed(1)}k` : words}</span>
-          <span className="stat-sep">/</span>
-          <span className="stat-min">{minutes}m</span>
-        </div>
-        <button className="tbar-btn" onClick={onImportDocx} title={t("toolbar.importDocx")} aria-label={t("toolbar.importDocx")}>
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
-            <path d="M2 6.5h3.5L7 8h5a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V7.5a1 1 0 0 1 1-1z" />
-            <line x1="11" y1="1" x2="11" y2="4.5" />
-              <polyline points="9.5,3 11,4.5 12.5,3" />
+          <button
+            className={`tbar-btn ${modified ? "has-action" : ""}`}
+          onClick={onSave}
+          title={t("toolbar.saveAs")}
+          aria-label={t("toolbar.saveAs")}
+        >
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
+            <path d="M3 1v5h8V1M3 14v-4h9v4" />
+            <path d="M1 6v8h13V6" />
           </svg>
-        </button>
-        <button className="tbar-btn export-btn" onClick={onExportDocx} title={t("toolbar.exportDocx")} aria-label={t("toolbar.exportDocx")}>
-          <span className="export-fmt">DOCX</span>
         </button>
         {onExportPdf && (
           <button className="tbar-btn export-btn" onClick={onExportPdf} title={t("menu.exportPdf")} aria-label={t("menu.exportPdf")}>
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="7.5" y1="2.5" x2="7.5" y2="11.5" />
+                <polyline points="5,9.5 7.5,12.5 10,9.5" fill="none" />
+                <line x1="2.5" y1="13" x2="12.5" y2="13" />
+              </svg>
             <span className="export-fmt">PDF</span>
-          </button>
-        )}
-        {onToggleView && (
-          <button
-            className={`tbar-btn view-toggle ${viewMode === "preview" ? "active" : ""}`}
-            onClick={onToggleView}
-            title={viewMode === "edit" ? t("toolbar.preview") : t("toolbar.editView")}
-            aria-label={viewMode === "edit" ? t("toolbar.preview") : t("toolbar.editView")}
-            aria-pressed={viewMode === "preview"}
-          >
-            {viewMode === "edit" ? t("toolbar.preview") : t("toolbar.editView")}
           </button>
         )}
         {recentItems !== undefined && recentItems.length > 0 && (
@@ -251,28 +248,6 @@ export const Toolbar = memo(function Toolbar({
             <span className="recent-badge">{recentItems.length}</span>
           </button>
         )}
-        <button className="tbar-btn" onClick={onNew} title={t("toolbar.new")} aria-label={t("toolbar.new")}>
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
-            <line x1="7.5" y1="2" x2="7.5" y2="13" />
-            <line x1="2" y1="7.5" x2="13" y2="7.5" />
-          </svg>
-        </button>
-        <button className="tbar-btn" onClick={onOpen} title={t("toolbar.open")} aria-label={t("toolbar.open")}>
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
-            <path d="M2 4h4l1.5 1.5H12a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
-          </svg>
-        </button>
-        <button
-          className={`tbar-btn ${modified ? "has-action" : ""}`}
-          onClick={onSave}
-          title={t("toolbar.save")}
-          aria-label={t("toolbar.save")}
-        >
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
-            <path d="M3 1v5h8V1M3 14v-4h9v4" />
-            <path d="M1 6v8h13V6" />
-          </svg>
-        </button>
         <button
           className="tbar-btn"
           onClick={onFindReplace}

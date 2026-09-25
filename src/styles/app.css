@@ -57,6 +57,9 @@ html.is-mac .toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
+  /* 产出与文档操作不许被压缩——压缩的下场是文字被裁。
+     富余空间由中间的弹性区让出。 */
+  flex-shrink: 0;
 }
 
 .toolbar-center {
@@ -81,28 +84,34 @@ html.is-mac .toolbar {
 }
 
 .brand-mark .brand-tile {
-  fill: #0a0a0a;
+  fill: var(--brand-tile, #0a0a0a);
   stroke: var(--border-strong);
   stroke-width: 1;
 }
 
 .brand-mark .brand-letters {
-  fill: #ffffff;
+  fill: var(--brand-ink, #ffffff);
   font-family: var(--font-sans);
 }
 
 .brand-mark .brand-badge {
-  fill: #ffffff;
+  fill: var(--brand-ink, #ffffff);
 }
 
-.export-btn {
+/* 行宽紧张时 flex 会把可收缩的 svg 压到 0 宽 —— 图标凭空消失 */
+.tbar-btn svg {
+  flex-shrink: 0;
+}
+
+/* 用双类选择器压过后面 .tbar-btn 的固定 30px 宽，否则文字被裁 */
+.tbar-btn.export-btn {
   width: auto;
   min-width: 0;
   padding: 0 9px;
 }
 
 .export-fmt {
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.02em;
   font-family: var(--font-sans);
@@ -113,7 +122,7 @@ html.is-mac .toolbar {
 }
 
 .brand-name {
-  font-size: 13px;
+  font-size: var(--fs-base);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text-primary);
@@ -124,36 +133,6 @@ html.is-mac .toolbar {
   font-weight: 400;
   color: var(--text-tertiary);
   margin-left: 2px;
-}
-
-.doc-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: var(--radius-xl);
-  background: var(--accent-muted);
-  border: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.doc-pill.modified .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-
-.doc-pill .name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Toolbar buttons */
@@ -202,10 +181,34 @@ html.is-mac .toolbar {
 }
 
 /* Stats pill in toolbar */
+/* Icon plus a word. An icon alone is a guess the user has to hover to check;
+   the ones that carry meaning say what they are. */
+.tbar-btn.labeled {
+  width: auto;
+  min-width: 0;
+  padding: 0 8px;
+  gap: 6px;
+}
+
+.tbar-label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+/* Narrow windows fall back to icons and tooltips rather than crowding. */
+@media (max-width: 960px) {
+  .tbar-label {
+    display: none;
+  }
+}
+
 .tbar-btn.stat {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   padding: 0 8px;
   width: auto;
   font-variant-numeric: tabular-nums;
@@ -218,18 +221,18 @@ html.is-mac .toolbar {
 }
 
 .tbar-btn.stat .stat-num {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-secondary);
 }
 
 .tbar-btn.stat .stat-sep {
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   color: var(--text-muted);
 }
 
 .tbar-btn.stat .stat-min {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-tertiary);
 }
 
@@ -238,12 +241,12 @@ html.is-mac .toolbar {
   gap: 4px;
   width: auto;
   padding: 0 10px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 500;
 }
 
 .focus-label {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: inherit;
   white-space: nowrap;
 }
@@ -259,7 +262,7 @@ html.is-mac .toolbar {
 .goal-track {
   width: 48px;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--accent-muted);
   overflow: hidden;
 }
@@ -267,12 +270,12 @@ html.is-mac .toolbar {
 .goal-fill {
   height: 100%;
   background: var(--accent);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   transition: width 0.4s var(--ease);
 }
 
 .goal-text {
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   font-weight: 600;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
@@ -292,7 +295,7 @@ html.is-mac .toolbar {
   border: 1px solid var(--border-mid);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
   outline: none;
   transition: border-color var(--dur-fast) var(--ease);
@@ -360,12 +363,12 @@ html.is-mac .toolbar {
 }
 
 .chapter-header {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
-  padding: 12px 14px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -378,7 +381,7 @@ html.is-mac .toolbar {
 
 .chapter-empty {
   padding: 16px 12px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   font-style: italic;
   line-height: 1.5;
@@ -388,15 +391,14 @@ html.is-mac .toolbar {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 6px 10px;
-  font-size: 12.5px;
+  padding: 8px 12px 8px 12px;
+  font-size: var(--fs-base);
   color: var(--text-tertiary);
   border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border-left: 2px solid transparent;
   transition: all var(--dur-fast);
   background: none;
   border-top: none;
@@ -406,13 +408,11 @@ html.is-mac .toolbar {
 
 .chapter-item:hover {
   color: var(--text-primary);
-  background: var(--accent-muted);
-  border-left-color: var(--border-strong);
 }
 
 .chapter-item.level-1 {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-base);
   color: var(--text-secondary);
 }
 
@@ -427,11 +427,33 @@ html.is-mac .toolbar {
   align-items: center;
   gap: 2px;
   position: relative;
+  border-radius: var(--radius-sm);
+  padding-right: 6px;
+  transition: background var(--dur-fast);
+}
+
+.chapter-row:hover {
+  background: var(--accent-muted);
+}
+
+.chapter-row.current {
+  background: var(--accent-muted);
+}
+
+/* 内浮短竖条：不随圆角弯曲，悬在胶囊左缘内侧 */
+.chapter-row.current::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
 }
 
 .chapter-row.current .chapter-item {
-  background: var(--accent-muted);
-  border-left-color: var(--accent);
+  color: var(--text-primary);
 }
 
 .chapter-item {
@@ -442,9 +464,9 @@ html.is-mac .toolbar {
 .chapter-meta {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   color: var(--text-tertiary);
 }
 
@@ -455,15 +477,15 @@ html.is-mac .toolbar {
 }
 
 .chapter-words.overflow {
-  color: var(--accent-warn, #d98a00);
+  color: var(--accent-warn);
   font-weight: 600;
 }
 
 .chapter-goal-badge {
   background: var(--accent-muted);
   color: var(--text-primary);
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: 2px 4px;
+  border-radius: var(--radius-xs);
   font-weight: 600;
 }
 
@@ -473,9 +495,9 @@ html.is-mac .toolbar {
   justify-content: center;
   width: 16px;
   height: 16px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   color: inherit;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1;
   background: transparent;
   border: none;
@@ -493,17 +515,17 @@ html.is-mac .toolbar {
   width: 48px;
   height: 18px;
   padding: 0 4px;
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   color: var(--text-primary);
   background: var(--bg-primary);
   border: 1px solid var(--accent);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   outline: none;
 }
 
 .chapter-item.level-3 {
   padding-left: 30px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 
 .chapter-item.passed {
@@ -517,6 +539,41 @@ html.is-mac .toolbar {
 }
 
 /* ── Editor ────────────────────────────────────────────────────── */
+
+.view-switch {
+  position: absolute;
+  top: 10px;
+  right: 16px;
+  z-index: 4;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-secondary);
+}
+
+.view-switch-btn {
+  padding: 4px 16px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--text-tertiary);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: color var(--dur-fast), background var(--dur-fast);
+}
+
+.view-switch-btn:hover {
+  color: var(--text-primary);
+}
+
+.view-switch-btn.active {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
 
 .editor-container {
   flex: 1;
@@ -549,7 +606,7 @@ html.is-mac .toolbar {
 /* ── Workspace Stats (v1.1.x) ──────────────────────────────────────── */
 
 .workspace-stats {
-  padding: 10px 12px;
+  padding: 12px 12px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -557,7 +614,7 @@ html.is-mac .toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-secondary);
   line-height: 1.6;
 }
@@ -569,7 +626,7 @@ html.is-mac .toolbar {
 }
 
 .ws-sub {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-tertiary);
 }
 
@@ -582,7 +639,7 @@ html.is-mac .toolbar {
 
 .ws-progress {
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--border);
   overflow: hidden;
 }
@@ -590,7 +647,7 @@ html.is-mac .toolbar {
 .ws-bar {
   height: 100%;
   background: var(--accent);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   transition: width 0.4s ease;
 }
 
@@ -598,7 +655,7 @@ html.is-mac .toolbar {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 
 .ws-pct {
@@ -609,6 +666,13 @@ html.is-mac .toolbar {
 
 .ws-goal-target {
   color: var(--text-tertiary);
+}
+
+/* 编辑与预览共用同一条居中阅读栏：同一份稿子，不该有两种边距。
+   居中放在宿主层——cm-content 受 CM 弹性布局支配，约束会被吃掉。 */
+.editor-scroll > .cm-root {
+  max-width: 760px;
+  margin: 0 auto;
 }
 
 .editor-pane {
@@ -637,7 +701,7 @@ html.is-mac .toolbar {
   resize: none;
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: var(--fs-lg);
   line-height: 1.8;
   caret-color: var(--accent);
   white-space: pre-wrap;
@@ -650,40 +714,11 @@ html.is-mac .toolbar {
   background: var(--selection);
 }
 
-/* Focus mode: dim non-active content via CSS */
-/* Paragraph mode: current paragraph is bright, others dimmed */
-.focus-paragraph .editor-area {
+/* Focus mode: everything outside the active paragraph or sentence is dimmed
+   by the CodeMirror decoration in focusMode.ts. These rules are the dimming. */
+.cm-focus-dim {
   color: var(--text-muted);
 }
-
-.focus-paragraph .editor-area::selection {
-  background: var(--selection);
-}
-
-.focus-paragraph .editor-area:focus {
-  /* Textarea can't target pseudo-elements per line; we approximate by
-     dimming everything and letting bright text come through via overlay trick.
-     The actual line-by-line highlight is handled in JS by splitting content. */
-}
-
-/* Sentence mode */
-.focus-sentence .editor-area {
-  color: var(--text-muted);
-}
-
-/* For focus modes we need a different approach: use a background-gradient
-   overlay that highlights only the active region. This is the classic
-   "typewriter focus" technique using background-size + background-position. */
-
-.focus-paragraph .editor-area,
-.focus-sentence .editor-area {
-  background-image: linear-gradient(
-    to bottom,
-    var(--bg-primary) 0%,
-    var(--bg-primary) 100%
-  );
-}
-
 /* ───────────────────────────────────────────────────────────────────
    View toggle wrappers (v1.1.3)
    Editor always mounted; hidden via display:none when previewing.
@@ -718,13 +753,13 @@ html.is-mac .toolbar {
   align-items: center;
   justify-content: space-between;
   height: 36px;
-  padding: 0 12px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-secondary);
 }
 
 .preview-title {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-secondary);
   letter-spacing: 0.02em;
@@ -737,6 +772,8 @@ html.is-mac .toolbar {
 
 .preview-scroll .md-viewer {
   max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 48px 72px;
 }
 
 /* ───────────────────────────────────────────────────────────────────
@@ -746,7 +783,7 @@ html.is-mac .toolbar {
 .frontmatter-panel {
   border-bottom: 1px solid var(--border);
   background: var(--bg-primary);
-  padding: 8px 10px;
+  padding: 8px 12px;
 }
 
 .fm-header {
@@ -757,7 +794,7 @@ html.is-mac .toolbar {
 }
 
 .fm-title {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -767,20 +804,20 @@ html.is-mac .toolbar {
 .fm-save,
 .fm-add {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
-  border-radius: 4px;
-  padding: 3px 8px;
-  font-size: 11px;
+  border-radius: var(--radius-xs);
+  padding: 4px 8px;
+  font-size: var(--fs-xs);
   cursor: pointer;
   font-weight: 600;
 }
 
 .fm-save { background: var(--accent); }
-.fm-add { background: transparent; color: var(--accent); padding: 3px 2px; }
+.fm-add { background: transparent; color: var(--accent); padding: 4px 2px; }
 
 .fm-empty {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
   font-style: italic;
   padding: 4px 0;
@@ -799,10 +836,10 @@ html.is-mac .toolbar {
   width: 100%;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   color: var(--text-primary);
-  font-size: 11px;
-  padding: 3px 5px;
+  font-size: var(--fs-xs);
+  padding: 4px 6px;
   outline: none;
   font-family: var(--font-mono);
 }
@@ -816,10 +853,10 @@ html.is-mac .toolbar {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1;
   padding: 2px 4px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .fm-remove:hover {
@@ -838,7 +875,7 @@ html.is-mac .toolbar {
    ─────────────────────────────────────────────────────────────────── */
 
 .view-toggle {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   padding: 3px 9px !important;
   font-family: var(--font-sans);
@@ -848,7 +885,7 @@ html.is-mac .toolbar {
 
 .view-toggle.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .recent-btn { position: relative; }
@@ -858,13 +895,13 @@ html.is-mac .toolbar {
   top: 2px;
   right: 2px;
   background: var(--accent);
-  color: #fff;
-  font-size: 9px;
+  color: var(--on-accent);
+  font-size: var(--fs-2xs);
   font-weight: 700;
   line-height: 1;
   min-width: 14px;
   height: 14px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -896,7 +933,7 @@ html.is-mac .toolbar {
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -910,7 +947,7 @@ html.is-mac .toolbar {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   text-transform: none;
   letter-spacing: 0;
 }
@@ -938,13 +975,13 @@ html.is-mac .toolbar {
 .recent-item:hover { background: var(--accent-muted); }
 
 .recent-name {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-primary);
   font-weight: 500;
 }
 
 .recent-path {
-  font-size: 10px;
+  font-size: var(--fs-2xs);
   color: var(--text-muted);
   font-family: var(--font-mono);
   overflow: hidden;
@@ -955,7 +992,7 @@ html.is-mac .toolbar {
 
 .recent-empty {
   padding: 12px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   text-align: center;
 }
@@ -969,7 +1006,7 @@ html.is-mac .toolbar {
   padding: 0 12px;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
   gap: 8px;
   flex-shrink: 0;
@@ -1007,7 +1044,7 @@ html.is-mac .toolbar {
   border: 1px solid transparent;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
   cursor: pointer;
 }
@@ -1028,7 +1065,7 @@ html.is-mac .toolbar {
   border: none;
   padding: 0 2px;
   font: inherit;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: inherit;
   cursor: pointer;
   opacity: 0.6;
@@ -1045,11 +1082,11 @@ html.is-mac .toolbar {
   bottom: 32px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 8px 18px;
+  padding: 8px 24px;
   background: var(--bg-floating);
   border: 1px solid var(--border-mid);
-  border-radius: var(--radius-xl);
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sm);
   color: var(--text-secondary);
   z-index: 50;
   box-shadow: var(--glow-md);
@@ -1085,7 +1122,7 @@ html.is-mac .toolbar {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   padding: 4px 8px;
   width: 180px;
   outline: none;
@@ -1103,7 +1140,7 @@ html.is-mac .toolbar {
   justify-content: center;
   border-radius: var(--radius-sm);
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 
 .find-btn:hover {
@@ -1178,7 +1215,7 @@ html.is-mac .toolbar {
   gap: 6px;
   height: 26px;
   padding: 0 8px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-tertiary);
   background: transparent;
   border-radius: var(--radius-sm);
@@ -1224,7 +1261,7 @@ html.is-mac .toolbar {
   height: 16px;
   border-radius: 50%;
   color: inherit;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1;
   opacity: 0.5;
   flex-shrink: 0;
@@ -1247,7 +1284,7 @@ html.is-mac .toolbar {
   height: 24px;
   border-radius: var(--radius-sm);
   color: var(--text-tertiary);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   flex-shrink: 0;
   cursor: pointer;
   background: transparent;
@@ -1266,7 +1303,7 @@ html.is-mac .toolbar {
   display: flex;
   gap: 6px;
   align-items: center;
-  padding: 6px 10px;
+  padding: 6px 12px;
   background: var(--bg-floating);
   border-bottom: 1px solid var(--border);
   animation: slideIn var(--dur-fast) var(--ease);
@@ -1277,7 +1314,7 @@ html.is-mac .toolbar {
 }
 
 .find-counter {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   min-width: 40px;
   text-align: center;
@@ -1300,7 +1337,7 @@ html.is-mac .toolbar {
     width: 220px;
   }
   .editor-area {
-    padding: 24px 20px 80px;
+    padding: 24px 24px 80px;
   }
   .toolbar-center {
     display: none;

@@ -4,12 +4,13 @@
  * Keeps v1 features: typewriter scroll, paragraph/sentence focus, Tab indent, list auto-continue.
  */
 import { memo, useEffect, useRef } from "react";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { getUiLang } from "../i18n";
+import { focusExtension } from "./focusMode";
 
 type FocusMode = "off" | "paragraph" | "sentence";
 
@@ -79,7 +80,9 @@ const rocktierTheme = EditorView.theme({
     caretColor: "var(--accent)",
   },
   ".cm-content": {
-    padding: "48px 64px 120px",
+    // 居中不在这一层做：cm-content 是 CM 弹性布局的一部分，宽度约束会被
+    // flex-grow 吃掉；居中在宿主 .cm-root 上做（见 app.css）。
+    padding: "40px 48px 96px",
     lineHeight: "1.8",
     whiteSpace: "pre-wrap",
     wordWrap: "break-word",
@@ -116,6 +119,8 @@ export const Editor = memo(function Editor({
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  // Focus mode swaps its plugin in and out, so it lives in a compartment.
+  const focusCompartment = useRef<Compartment>(new Compartment());
 
   // Keep latest callbacks in refs so CM listener doesn't re-subscribe
   const onChangeRef = useRef(onChange);
@@ -136,6 +141,9 @@ export const Editor = memo(function Editor({
         markdown({ base: markdownLanguage }),
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
         rocktierKeymap,
+        focusCompartment.current.of(
+          focusMode === "off" ? [] : focusExtension(focusMode),
+        ),
         EditorView.updateListener.of((u) => {
           if (u.docChanged) {
             onChangeRef.current(u.state.doc.toString());
@@ -163,6 +171,17 @@ export const Editor = memo(function Editor({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Focus mode: swap the dimming plugin when the mode changes
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      effects: focusCompartment.current.reconfigure(
+        focusMode === "off" ? [] : focusExtension(focusMode),
+      ),
+    });
+  }, [focusMode]);
 
   // Sync external content changes (file open / undo / switch doc)
   useEffect(() => {

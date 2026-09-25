@@ -5,8 +5,9 @@
 
 .md-viewer {
   font-family: var(--font-serif);
-  font-size: 15px;
-  line-height: 1.8;
+  font-size: 16px;
+  /* 1.9 而不是常见的 1.6-1.7：正文是中文长文，CJK 字面高、需要更多行距 */
+  line-height: 1.9;
   color: var(--text-primary);
   max-width: 720px;
   margin: 0 auto;
@@ -64,7 +65,8 @@
 /* ── Paragraphs & Inline ─────────────────────────────────────────── */
 
 .md-viewer p {
-  margin: 0.65em 0;
+  /* 段间距约 0.7 个行高，而不是原来的 0.65em（比一行还窄） */
+  margin: 0 0 1.25em;
 }
 
 .md-viewer a {
@@ -106,7 +108,7 @@
 /* ── Blockquote ──────────────────────────────────────────────────── */
 
 .md-viewer blockquote {
-  margin: 1em 0;
+  margin: 1.4em 0;
   padding: 0.4em 1.2em;
   border-left: 3px solid var(--border-strong);
   color: var(--text-secondary);
@@ -128,12 +130,12 @@
 
 .md-viewer ul,
 .md-viewer ol {
-  margin: 0.65em 0;
+  margin: 1.1em 0;
   padding-left: 1.6em;
 }
 
 .md-viewer li {
-  margin: 0.2em 0;
+  margin: 0.45em 0;
 }
 
 .md-viewer li > ul,

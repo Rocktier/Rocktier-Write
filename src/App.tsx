@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
+import { ViewSwitch } from "./components/ViewSwitch";
 import { Toolbar } from "./components/Toolbar";
 import { Editor } from "./components/Editor";
 import { ChapterTree } from "./components/ChapterTree";
@@ -318,7 +319,7 @@ export default function App() {
     const eol = eolRef.current.get(id) ?? "\n";
     try {
       const p = await saveFileAs(applyEol(content, eol), path ? baseName(path) : undefined);
-      if (!p) {
+      if (p) {
         setActiveDoc((d) => ({ ...d, path: p, modified: false }));
         lastSavedRef.current.set(docId(p), content);
         rememberPath(p);
@@ -463,6 +464,39 @@ export default function App() {
   useKeyboardShortcuts(shortcuts);
 
   // ── Open file externally (drop / drag / argv) ────────────────────
+    // Save As, with the format chosen in the same dialog. Markdown and Word are
+    // both written to the chosen path. PDF is deliberately not an option here:
+    // it comes out of the system print pipeline, so asking for a path first
+    // would only make the user choose a destination twice.
+    const doSaveAsWithFormat = useCallback(async () => {
+      const { content, path } = activeDoc;
+      const id = docId(path);
+      const eol = eolRef.current.get(id) ?? "\n";
+      try {
+        const { save: dialogSave } = await import("@tauri-apps/plugin-dialog");
+        const p = await dialogSave({
+          filters: [
+            { name: "Markdown", extensions: ["md"] },
+            { name: "Word document", extensions: ["docx"] },
+          ],
+          defaultPath: path ? path : `${t("doc.untitled")}.md`,
+        });
+        if (!p) return;
+        if (p.toLowerCase().endsWith(".docx")) {
+          await invoke("export_docx", { markdown: content, outputPath: p });
+          showToast(t("toast.docxExported"));
+          return;
+        }
+        await saveFileAs(applyEol(content, eol), p);
+        setActiveDoc((d) => ({ ...d, path: p, modified: false }));
+        lastSavedRef.current.set(docId(p), content);
+        rememberPath(p);
+        showToast(t("toast.savedAs"));
+      } catch {
+        showToast(t("toast.saveFailed"));
+      }
+    }, [activeDoc, showToast, rememberPath]);
+
   const openPath = useCallback(async (filePath: string): Promise<boolean> => {
     const ext = filePath.split(".").pop()?.toLowerCase();
     if (!ext || (!MARKDOWN_EXTS.includes(ext) && !DOCX_EXTS.includes(ext))) {
@@ -580,7 +614,6 @@ export default function App() {
   const onCursorMove = useCallback((line: number) => setCursorLine(line), []);
 
   // ── Render ───────────────────────────────────────────────────────
-  const displayName = activeDoc.path ? baseName(activeDoc.path) : t("doc.untitled");
   const tabDocs: TabDoc[] = docs.map((d) => ({
     id: docId(d.path),
     path: d.path,
@@ -616,14 +649,12 @@ export default function App() {
   return (
     <div className="app-shell">
       <Toolbar
+        words={stats.words}
         onToggleSidebar={() => setSidebar((v) => !v)}
         onNew={doNew}
         onOpen={doOpen}
-        onSave={doSave}
+        onSave={doSaveAsWithFormat}
         modified={activeDoc.modified}
-        displayName={displayName}
-        words={stats.words}
-        minutes={stats.minutes}
         onToggleTheme={toggleTheme}
         onFindReplace={() => setFindReplaceOpen((v) => !v)}
         focusMode={focusMode}
@@ -634,13 +665,10 @@ export default function App() {
         frontmatterOpen={fmOpen}
         onToggleInfo={() => setFmOpen((v) => !v)}
         onImportDocx={doOpen}
-        onExportDocx={doExportDocx}
         onExportPdf={doExportPdf}
         recentItems={recentItems}
         onOpenRecent={onOpenRecent}
         onClearRecent={onClearRecent}
-        viewMode={viewMode}
-        onToggleView={() => setViewMode((m) => (m === "edit" ? "preview" : "edit"))}
       />
       <TabBar
         tabs={tabDocs}
@@ -692,6 +720,7 @@ export default function App() {
         />
         </aside>
         <main className="editor-container">
+          <ViewSwitch viewMode={viewMode} onChange={setViewMode} />
           {cmReady && findReplaceOpen && viewMode === "edit" && (
             <FindReplace onClose={() => setFindReplaceOpen(false)} />
           )}
@@ -709,15 +738,15 @@ export default function App() {
           </div>
           {viewMode === "preview" && (
             <div className="preview-pane-wrap">
-              <Preview content={activeDoc.content} onExit={() => setViewMode("edit")} />
+              <Preview content={activeDoc.content} />
             </div>
           )}
         </main>
       </div>
       <StatusBar
         words={stats.words}
-        chars={stats.chars}
         minutes={stats.minutes}
+        chars={stats.chars}
         sessionMinutes={sessionMinutes}
         currentChapter={currentChapter}
         focusMode={focusMode}
