@@ -63,6 +63,7 @@ export default function App() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<Map<string, string>>(new Map());
   const lastPathRef = useRef<string | null>(null);
+  const [chapterGoals, setChapterGoals] = useState<Map<string, Record<number, number>>>(new Map());
   const eolRef = useRef<Map<string, Eol>>(new Map());
 
   // Derive active doc for convenience
@@ -570,6 +571,17 @@ export default function App() {
           headings={headings}
           currentLine={cursorLine}
           visible={sidebar}
+          content={activeDoc.content}
+          chapterGoals={chapterGoals.get(activeId) ?? {}}
+          onSetChapterGoal={(line, goal) => {
+            setChapterGoals((prev) => {
+              const m = new Map(prev);
+              const cur = { ...(m.get(activeId) ?? {}) };
+              cur[line] = goal;
+              m.set(activeId, cur);
+              return m;
+            });
+          }}
           onJumpTo={(line) => {
             const cm = (window as unknown as { __cmView?: { state: unknown; dispatch: unknown } }).__cmView;
             if (!cm) return;

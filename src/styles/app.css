@@ -403,6 +403,87 @@ html.is-mac .toolbar {
   padding-left: 18px;
 }
 
+/* ── Chapter row with meta (v1.1.x) ──────────────────────────────────── */
+
+.chapter-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+}
+
+.chapter-row.current .chapter-item {
+  background: var(--accent-muted);
+  border-left-color: var(--accent);
+}
+
+.chapter-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.chapter-meta {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.chapter-words {
+  font-variant-numeric: tabular-nums;
+  min-width: 28px;
+  text-align: right;
+}
+
+.chapter-words.overflow {
+  color: var(--accent-warn, #d98a00);
+  font-weight: 600;
+}
+
+.chapter-goal-badge {
+  background: var(--accent-muted);
+  color: var(--text-primary);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.chapter-set-goal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.chapter-set-goal:hover {
+  opacity: 1;
+  background: var(--accent-hover);
+}
+
+.chapter-goal-input {
+  width: 48px;
+  height: 18px;
+  padding: 0 4px;
+  font-size: 10px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  outline: none;
+}
+
 .chapter-item.level-3 {
   padding-left: 30px;
   font-size: 12px;
