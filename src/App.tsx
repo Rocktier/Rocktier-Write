@@ -460,7 +460,8 @@ export default function App() {
     onSave: doSave, onSaveAs: doSaveAs, onNew: doNew, onOpen: doOpen,
     onToggleSidebar: () => setSidebar((v) => !v),
     onFindReplace: () => setFindReplaceOpen((v) => !v),
-  }), [doSave, doSaveAs, doNew, doOpen]);
+    onExportPdf: doExportPdf,
+  }), [doSave, doSaveAs, doNew, doOpen, doExportPdf]);
   useKeyboardShortcuts(shortcuts);
 
   // ── Open file externally (drop / drag / argv) ────────────────────
