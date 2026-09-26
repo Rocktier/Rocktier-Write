@@ -1,7 +1,7 @@
 {
   "name": "rocktier-write",
-  "version": "1.1.4",
-  "description": "Distraction-free long-form writing \u2014 Rocktier family",
+  "version": "1.1.5",
+  "description": "Distraction-free long-form writing — Rocktier family",
   "private": true,
   "type": "module",
   "scripts": {
