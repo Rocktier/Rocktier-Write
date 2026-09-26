@@ -64,6 +64,11 @@ export const StatusBar = memo(function StatusBar({
           onClick={() => void cycleUiLang()}
           title={t("statusBar.lang")}
         >
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
+            <circle cx="7" cy="7" r="5.5" />
+            <ellipse cx="7" cy="7" rx="2.6" ry="5.5" />
+            <line x1="1.5" y1="7" x2="12.5" y2="7" />
+          </svg>
           {getUiLang().toUpperCase()}
         </button>
       </div>

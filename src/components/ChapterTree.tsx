@@ -131,7 +131,7 @@ export const ChapterTree = memo(function ChapterTree({
                   ) : (
                     <button
                       className="chapter-set-goal"
-                      title={t("chapters.setGoal")}
+                      title={t("chapters.setGoal")} aria-label={t("chapters.setGoal")}
                       onClick={() => setEditingLine(h.line)}
                     >
                       {goal > 0 ? "★" : "+"}

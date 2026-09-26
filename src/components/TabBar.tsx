@@ -43,14 +43,14 @@ export const TabBar = memo(function TabBar({ tabs, activeId, onSelect, onClose, 
           {tab.modified && <span className="tab-dot" aria-label={t("toolbar.unsaved")} />}
           <button
             className="tab-close"
-            aria-label={t("sidebar.close")}
+            title={t("sidebar.close")} aria-label={t("sidebar.close")}
             onClick={(e) => { e.stopPropagation(); onClose(tab.id); }}
           >
             ×
           </button>
         </div>
       ))}
-      <button className="tab-new" onClick={onNew} title={t("toolbar.new")}>
+      <button className="tab-new" onClick={onNew} title={t("toolbar.new")} aria-label={t("toolbar.new")}>
         +
       </button>
     </div>

@@ -79,7 +79,7 @@ export const FrontmatterPanel = memo(function FrontmatterPanel({ content, onCont
       <div className="fm-header">
         <span className="fm-title">{t("frontmatter.title")}</span>
         {dirty && (
-          <button className="fm-save" onClick={save} title={t("frontmatter.save")}>
+          <button className="fm-save" onClick={save} title={t("frontmatter.save")} aria-label={t("frontmatter.save")}>
             {t("frontmatter.save")}
           </button>
         )}
@@ -108,7 +108,7 @@ export const FrontmatterPanel = memo(function FrontmatterPanel({ content, onCont
                   />
                 </td>
                 <td>
-                  <button className="fm-remove" onClick={() => removeRow(i)} aria-label={t("frontmatter.cancel")}>
+                  <button className="fm-remove" onClick={() => removeRow(i)} title={t("frontmatter.removeRow")} aria-label={t("frontmatter.removeRow")}>
                     ×
                   </button>
                 </td>
@@ -118,7 +118,7 @@ export const FrontmatterPanel = memo(function FrontmatterPanel({ content, onCont
         </table>
       )}
       <div className="fm-footer">
-        <button className="fm-add" onClick={addRow} title={t("frontmatter.add")}>
+        <button className="fm-add" onClick={addRow} title={t("frontmatter.add")} aria-label={t("frontmatter.add")}>
           + {t("frontmatter.add")}
         </button>
       </div>

@@ -29,7 +29,7 @@ export const RecentMenu = memo(function RecentMenu({ items, onOpen, onClear }: P
     <div className="recent-menu">
       <div className="recent-header">
         <span>{t("recent.title")}</span>
-        <button className="recent-clear" onClick={onClear} title={t("recent.clear")}>
+        <button className="recent-clear" onClick={onClear} title={t("recent.clear")} aria-label={t("recent.clear")}>
           {t("recent.clear")}
         </button>
       </div>
