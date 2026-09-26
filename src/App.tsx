@@ -654,10 +654,15 @@ export default function App() {
         onToggleSidebar={() => setSidebar((v) => !v)}
         onNew={doNew}
         onOpen={doOpen}
-        onSave={doSaveAsWithFormat}
+        onSave={doSave}
+        onSaveAsWithFormat={doSaveAsWithFormat}
         modified={activeDoc.modified}
         onToggleTheme={toggleTheme}
-        onFindReplace={() => setFindReplaceOpen((v) => !v)}
+        onFindReplace={() => {
+          // Find needs the editor surface; if currently previewing, switch back first.
+          if (viewMode !== "edit") setViewMode("edit");
+          setFindReplaceOpen((v) => !v);
+        }}
         focusMode={focusMode}
         onCycleFocus={cycleFocus}
         wordGoal={wordGoal}

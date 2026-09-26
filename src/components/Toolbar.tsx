@@ -18,6 +18,7 @@ interface Props {
   onNew: () => void;
   onOpen: () => void;
   onSave: () => void;
+  onSaveAsWithFormat?: () => void;
   onImportDocx: () => void;
   modified: boolean;
   onToggleTheme: () => void;
@@ -48,6 +49,7 @@ export const Toolbar = memo(function Toolbar({
   onNew,
   onOpen,
   onSave,
+  onSaveAsWithFormat,
   onImportDocx,
   modified,
   onToggleTheme,
@@ -98,13 +100,7 @@ export const Toolbar = memo(function Toolbar({
           </svg>
         </button>
         <div className="brand">
-          <svg className="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-            <rect className="brand-tile" x="1" y="1" width="30" height="30" rx="8.5" />
-            <text className="brand-letters" x="17" y="17.4" fontSize="12" fontWeight="700" letterSpacing="-0.5" textAnchor="middle" dominantBaseline="central">WR</text>
-            <circle className="brand-badge" cx="8.6" cy="8.6" r="4.6" />
-            <path d="M6.6 8.7l1.4 1.4 2.4-2.7" stroke="#0a0a0a" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            <circle className="brand-pip" cx="25.8" cy="6.2" r="2.2" />
-          </svg>
+          <img className="brand-mark" src="/icon.svg" alt="" aria-hidden="true" />
           <span className="brand-name">Rocktier<span className="tag">Write</span></span>
         </div>
 
@@ -155,14 +151,29 @@ export const Toolbar = memo(function Toolbar({
 
       {/* ── Output：出去 ── */}
       <div className="tgroup" role="group" aria-label={t("toolbar.groupOutput")}>
-        <button className={`tbar-btn labeled ${modified ? "has-action" : ""}`} onClick={onSave} title={t("toolbar.saveAs")} aria-label={t("toolbar.saveAs")}>
-          {modified && <span className="save-dot" aria-hidden="true" />}
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3 1v5h8V1M3 14v-4h9v4" />
-            <path d="M1 6v8h13V6" />
-          </svg>
-          <span className="tbar-label">{t("toolbar.saveAs")}</span>
-        </button>
+        <div className="split">
+          <button className={`tbar-btn labeled split-main ${modified ? "has-action" : ""}`} onClick={onSave} title={t("toolbar.save")} aria-label={t("toolbar.save")}>
+            {modified && <span className="save-dot" aria-hidden="true" />}
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 1v5h8V1M3 14v-4h9v4" />
+              <path d="M1 6v8h13V6" />
+            </svg>
+            <span className="tbar-label">{t("toolbar.save")}</span>
+          </button>
+          {onSaveAsWithFormat && (
+            <button
+              className="split-caret"
+              onClick={onSaveAsWithFormat}
+              title={t("toolbar.saveAs")}
+              aria-label={t("toolbar.saveAs")}
+              aria-haspopup="true"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
+                <polyline points="1.5,3 4,5.5 6.5,3" />
+              </svg>
+            </button>
+          )}
+        </div>
         {onExportPdf && (
           <button className="tbar-btn labeled" onClick={onExportPdf} title={t("menu.exportPdf")} aria-label={t("menu.exportPdf")}>
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
