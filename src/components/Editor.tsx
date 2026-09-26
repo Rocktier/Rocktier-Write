@@ -8,7 +8,8 @@ import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
+import { search, searchKeymap, highlightSelectionMatches } from "@codemirror/search";
+import { searchHighlight } from "./searchHighlight";
 import { getUiLang } from "../i18n";
 import { focusExtension } from "./focusMode";
 
@@ -137,6 +138,8 @@ export const Editor = memo(function Editor({
       extensions: [
         rocktierTheme,
         highlightSelectionMatches(),
+        search(),
+        searchHighlight(),
         history(),
         markdown({ base: markdownLanguage }),
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),

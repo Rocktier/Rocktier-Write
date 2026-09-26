@@ -219,14 +219,19 @@ html.is-mac .toolbar {
 
 .split-caret:hover, .split-caret[aria-expanded="true"] { color: var(--ink); background: var(--accent-muted); }
 
-/* 带状态的开关：状态值住芯片，激活时反色 */
+/* 带状态的开关：状态值住芯片，激活时反色；字号与按钮小标签一致 */
 .tbar-btn .state {
+  font-size: var(--fs-xs);
+  font-weight: 600;
   background: var(--accent-muted);
   border-radius: var(--r-xs);
   padding: 1px 6px;
-  font-weight: 650;
   color: var(--ink);
 }
+
+/* 搜索高亮：常规匹配淡琥珀、当前匹配深一档（默认 CM 样式在两主题下都太隐身） */
+.cm-searchMatch { background: rgba(255, 177, 0, 0.30); }
+.cm-searchMatch-selected { background: rgba(255, 145, 0, 0.48); }
 
 .tbar-btn .state.on { background: var(--accent); color: var(--on-accent); }
 
