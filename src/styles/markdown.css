@@ -439,6 +439,9 @@
 
 @media print {
   .toolbar,
+  .tab-bar,
+  .view-switch,
+  .recent-popover,
   .sidebar,
   .sidebar-overlay,
   .editor-pane,

@@ -4,6 +4,7 @@ import App from "./App";
 import "./styles/tokens.css";
 import "./styles/global.css";
 import "./styles/app.css";
+import "./styles/markdown.css";
 import "./styles/katex-woff2.css";
 
 // 平台标记：让 CSS 只在 macOS 上做「避开红绿灯」这类平台专属留白。
