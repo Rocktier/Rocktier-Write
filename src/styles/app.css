@@ -168,17 +168,6 @@ html.is-mac .toolbar {
   position: relative;
 }
 
-.tbar-btn.has-action::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-  opacity: 0.8;
-}
 
 /* Stats pill in toolbar */
 /* Icon plus a word. An icon alone is a guess the user has to hover to check;
@@ -418,6 +407,7 @@ html.is-mac .toolbar {
 
 .chapter-item.level-2 {
   padding-left: 18px;
+  font-size: var(--fs-sm);
 }
 
 /* ── Chapter row with meta (v1.1.x) ──────────────────────────────────── */
@@ -459,6 +449,16 @@ html.is-mac .toolbar {
 .chapter-item {
   flex: 1;
   min-width: 0;
+}
+
+.chapter-set-goal {
+  opacity: 0;
+  transition: opacity var(--dur-fast);
+}
+
+.chapter-row:hover .chapter-set-goal,
+.chapter-set-goal:focus-visible {
+  opacity: 1;
 }
 
 .chapter-meta {
@@ -892,10 +892,11 @@ html.is-mac .toolbar {
 
 .recent-badge {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  background: var(--accent);
-  color: var(--on-accent);
+  top: 1px;
+  right: 0;
+  padding: 0;
+  background: none;
+  color: var(--text-tertiary);
   font-size: var(--fs-2xs);
   font-weight: 700;
   line-height: 1;

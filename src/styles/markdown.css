@@ -29,8 +29,9 @@
 }
 
 .md-viewer h2 {
+  margin-top: 2em;
   font-family: var(--font-sans);
-  font-size: 1.55em;
+  font-size: 1.42em;
   font-weight: 650;
   line-height: 1.25;
   letter-spacing: -0.015em;
@@ -41,7 +42,7 @@
 
 .md-viewer h3 {
   font-family: var(--font-sans);
-  font-size: 1.25em;
+  font-size: 1.18em;
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: -0.01em;

@@ -745,7 +745,6 @@ export default function App() {
       </div>
       <StatusBar
         words={stats.words}
-        minutes={stats.minutes}
         chars={stats.chars}
         sessionMinutes={sessionMinutes}
         currentChapter={currentChapter}

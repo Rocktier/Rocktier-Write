@@ -6,7 +6,6 @@ type FocusMode = "off" | "paragraph" | "sentence";
 interface Props {
   words: number;
   chars: number;
-  minutes: number;
   sessionMinutes: number;
   currentChapter: string;
   focusMode: FocusMode;
@@ -17,7 +16,6 @@ interface Props {
 export const StatusBar = memo(function StatusBar({
   words,
   chars,
-  minutes,
   sessionMinutes,
   currentChapter,
   focusMode,
@@ -33,8 +31,6 @@ export const StatusBar = memo(function StatusBar({
       <span className="status-item">{t("status.words", { n: words })}</span>
       <span className="sep" />
       <span className="status-item">{t("status.chars", { n: chars })}</span>
-      <span className="sep" />
-      <span className="status-item">{t("status.minutes", { m: minutes })}</span>
       <span className="sep" />
       <span className="status-item">{t("status.session", { m: sessionMinutes })}</span>
       {currentChapter && (
