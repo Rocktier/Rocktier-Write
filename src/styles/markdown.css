@@ -463,10 +463,23 @@
   }
 
   .md-viewer {
-    max-width: none;
+    max-width: 6.5in;
+    margin: 0 auto;
     padding: 0;
     print-color-adjust: economic;
     -webkit-print-color-adjust: economic;
+  }
+
+  /* 纸张永远是浅色语境：深色主题直接打印 = 白字印白纸 */
+  .preview-pane,
+  .preview-scroll {
+    background: #fff !important;
+  }
+
+  .md-viewer,
+  .md-viewer * {
+    color: #000 !important;
+    background: transparent !important;
   }
 
   .md-viewer pre {
