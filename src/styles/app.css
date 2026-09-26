@@ -172,6 +172,73 @@ html.is-mac .toolbar {
 /* Stats pill in toolbar */
 /* Icon plus a word. An icon alone is a guess the user has to hover to check;
    the ones that carry meaning say what they are. */
+/* ── Toolbar: verb groups ─────────────────────────────────────────
+   同一语法：图标 + 词；组间细分隔线；状态值住圆角芯片。 */
+.tgroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbar-spacer { flex: 1; }
+
+.vsep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+
+/* Open ▾ 拆分按钮：主体开文件，小箭头开最近列表 */
+.split {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  border-radius: var(--r-sm);
+}
+
+.split .tbar-btn:hover { background: none; color: var(--ink); }
+.split:hover { background: var(--accent-muted); }
+
+.split-main { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+
+.split-caret {
+  width: 16px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  border-top-right-radius: var(--r-sm);
+  border-bottom-right-radius: var(--r-sm);
+}
+
+.split-caret:hover, .split-caret[aria-expanded="true"] { color: var(--ink); background: var(--accent-muted); }
+
+/* 带状态的开关：状态值住芯片，激活时反色 */
+.tbar-btn .state {
+  background: var(--accent-muted);
+  border-radius: var(--r-xs);
+  padding: 1px 6px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.tbar-btn .state.on { background: var(--accent); color: var(--on-accent); }
+
+/* 未保存：墨点住在 Save 词前，不再飘在图标上 */
+.save-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+}
+
 .tbar-btn.labeled {
   width: auto;
   min-width: 0;
@@ -502,8 +569,7 @@ html.is-mac .toolbar {
   background: transparent;
   border: none;
   cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.15s, background 0.15s;
+  transition: background 0.15s;
 }
 
 .chapter-set-goal:hover {
