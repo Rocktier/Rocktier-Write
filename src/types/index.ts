@@ -1,4 +1,8 @@
 export interface MarkdownDocument {
+  /** Stable per-document identity. The path could not be used: every untitled
+   *  document shared docId(null), so a second "New" tab collided with the
+   *  first (duplicate React keys, both tabs active, close/switch confusion). */
+  id: string;
   path: string | null;
   content: string;
   modified: boolean;

@@ -5,7 +5,7 @@
  *   - inline goal setting per chapter (persisted by parent via goals map)
  *   - progress "12/50" / bar shown when goal set
  */
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { t, useUiLang } from "../i18n";
 
 interface Heading {
@@ -24,9 +24,12 @@ interface Props {
   onSetChapterGoal?: (line: number, goal: number) => void;
 }
 
-/** Count words between startLine and endLine (1-indexed, endLine exclusive). */
-function wordsInChapter(content: string, startLine: number, endLine: number): number {
-  const lines = content.split("\n");
+/**
+ * Count words between startLine and endLine (1-indexed, endLine exclusive).
+ * `lines` must be the already-split document — splitting per chapter is what
+ * made the old implementation O(headings × document) on every keystroke.
+ */
+function wordsInLines(lines: string[], startLine: number, endLine: number): number {
   const slice = lines.slice(startLine - 1, endLine - 1).join("\n").trim();
   if (!slice) return 0;
   const cn = (slice.match(/[\u3400-\u9fff\uf900-\ufaff]/g) || []).length;
@@ -80,13 +83,27 @@ export const ChapterTree = memo(function ChapterTree({
   const [editingLine, setEditingLine] = useState<number | null>(null);
   useUiLang();
 
-  // Compute per-chapter word counts once
-  const counts: Record<number, number> = {};
-  for (let i = 0; i < headings.length; i++) {
-    const h = headings[i];
-    const next = i + 1 < headings.length ? headings[i + 1].line : content.split("\n").length + 1;
-    counts[h.line] = wordsInChapter(content, h.line, next);
-  }
+  // Per-chapter word counts: split the document once, count in one pass.
+  const counts = useMemo(() => {
+    const lines = content.split("\n");
+    const c: Record<number, number> = {};
+    for (let i = 0; i < headings.length; i++) {
+      const start = headings[i].line;                                             // 1-indexed
+      const end = i + 1 < headings.length ? headings[i + 1].line : lines.length + 1;
+      c[start] = wordsInLines(lines, start, end);
+    }
+    return c;
+  }, [content, headings]);
+
+  // Index of the chapter containing currentLine — one pass instead of the
+  // old per-row findIndex (O(n²) over headings).
+  const currentIndex = useMemo(() => {
+    let idx = -1;
+    for (let i = 0; i < headings.length; i++) {
+      if (headings[i].line <= currentLine) idx = i; else break;
+    }
+    return idx;
+  }, [headings, currentLine]);
 
   return (
     <nav className={`chapter-tree ${visible ? "open" : ""}`} aria-label={t("chapters.title")}>
@@ -99,7 +116,7 @@ export const ChapterTree = memo(function ChapterTree({
             const goal = chapterGoals[h.line] ?? 0;
             const words = counts[h.line] ?? 0;
             const isEditing = editingLine === h.line;
-            const isCurrent = headings.findIndex((x) => x.line > currentLine) === i;
+            const isCurrent = i === currentIndex;
             const overflow = goal > 0 && words > goal;
             return (
               <div key={`${h.line}-${i}`} className={`chapter-row ${isCurrent ? "current" : ""}`}>

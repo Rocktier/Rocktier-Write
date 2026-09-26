@@ -40,9 +40,15 @@ function baseName(path: string): string {
   return path.split(/[/\\]/).pop() || "Untitled";
 }
 
-function docId(path: string | null): string {
-  return path ?? UNTITLED_KEY;
-}
+/** Unique identity for a document. See MarkdownDocument.id — the path used to
+ *  double as the tab id, which broke as soon as two untitled docs were open. */
+const newDocId = (): string =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `d-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+// Generated once per app load so the boot document and initial activeId agree.
+const BOOT_DOC_ID = newDocId();
 
 export default function App() {
   useTheme();
@@ -50,9 +56,9 @@ export default function App() {
 
   // ── Multi-doc state ──────────────────────────────────────────────
   const [docs, setDocs] = useState<MarkdownDocument[]>([
-    { path: null, content: WELCOME_DOCUMENT, modified: false },
+    { id: BOOT_DOC_ID, path: null, content: WELCOME_DOCUMENT, modified: false },
   ]);
-  const [activeId, setActiveId] = useState<string>(UNTITLED_KEY);
+  const [activeId, setActiveId] = useState<string>(BOOT_DOC_ID);
 
   const [sidebar, setSidebar] = useState(true);
   const [toast, setToast] = useState("");
@@ -86,14 +92,14 @@ export default function App() {
 
   // Derive active doc for convenience
   const activeDoc = useMemo(
-    () => docs.find((d) => docId(d.path) === activeId) ?? docs[0],
+    () => docs.find((d) => d.id === activeId) ?? docs[0],
     [docs, activeId],
   );
 
   const setActiveDoc = useCallback((updater: (d: MarkdownDocument) => MarkdownDocument) => {
     setDocs((prev) => {
       const id = activeId;
-      return prev.map((d) => (docId(d.path) === id ? updater(d) : d));
+      return prev.map((d) => (d.id === id ? updater(d) : d));
     });
   }, [activeId]);
 
@@ -203,7 +209,7 @@ export default function App() {
         try {
           if (await exists(raw)) {
             const { content, eol } = normalizeEol(await readTextFile(raw));
-            if (!cancelled) { eolRef.current.set(docId(raw), eol); restored = { path: raw, content, modified: false }; }
+            if (!cancelled) { restored = { id: newDocId(), path: raw, content, modified: false }; eolRef.current.set(restored.id, eol); }
             break;
           }
         } catch { /* try next */ }
@@ -228,7 +234,7 @@ export default function App() {
               message = t(stale ? "confirm.recoverNamedOlder" : "confirm.recoverNamedNewer", { name });
             }
             if (await confirmDialog(message)) {
-              if (!cancelled) restored = { path: untitled ? null : draft.path, content: draft.content, modified: true };
+              if (!cancelled) restored = { id: newDocId(), path: untitled ? null : draft.path, content: draft.content, modified: true };
             } else {
               await invoke("clear_recovery", { path: draft.path }).catch(() => {});
             }
@@ -238,7 +244,7 @@ export default function App() {
 
       if (!cancelled && restored) {
         setDocs([restored]);
-        setActiveId(docId(restored.path));
+        setActiveId(restored.id);
         lastPathRef.current = restored.path;
         if (restored.path) rememberPath(restored.path);
       }
@@ -256,43 +262,49 @@ export default function App() {
       if (r.path.toLowerCase().endsWith(".docx")) {
         try {
           const md = await invoke<string>("import_docx", { path: r.path });
-          const newDoc: MarkdownDocument = { path: null, content: md, modified: true };
+          const newDoc: MarkdownDocument = { id: newDocId(), path: null, content: md, modified: true };
           setDocs([newDoc]);
-          setActiveId(docId(newDoc.path));
+          setActiveId(newDoc.id);
           showToast(t("toast.docxImported"));
         } catch { showToast(t("toast.cannotOpenFile")); }
         return;
       }
-      const newDoc: MarkdownDocument = { path: r.path, content: r.content, modified: false };
-      eolRef.current.set(docId(r.path), r.eol);
-      lastSavedRef.current.set(docId(r.path), r.content);
+      const newDoc: MarkdownDocument = { id: newDocId(), path: r.path, content: r.content, modified: false };
+      eolRef.current.set(newDoc.id, r.eol);
+      lastSavedRef.current.set(newDoc.id, r.content);
       lastPathRef.current = r.path;
       setDocs([newDoc]);
-      setActiveId(docId(r.path));
+      setActiveId(newDoc.id);
       rememberPath(r.path);
       showToast(t("toast.fileOpened"));
     }
   }, [docs, showToast, rememberPath]);
 
   const openContent = useCallback((content: string, path: string | null, eol: Eol, modified?: boolean) => {
-    const id = docId(path);
-    eolRef.current.set(id, eol);
-    lastSavedRef.current.set(id, content);
     lastPathRef.current = path;
-    const newDoc: MarkdownDocument = { path, content, modified: modified ?? false };
     setDocs((prev) => {
-      const exists = prev.some((d) => docId(d.path) === id);
-      if (exists) return prev.map((d) => docId(d.path) === id ? newDoc : d);
-      return [...prev, newDoc];
+      // A named file reuses its tab if one is already open; untitled content
+      // (imports, drops) always lands in a fresh document.
+      const existing = path ? prev.find((d) => d.path === path) : undefined;
+      if (existing) {
+        eolRef.current.set(existing.id, eol);
+        lastSavedRef.current.set(existing.id, content);
+        setActiveId(existing.id);
+        return prev.map((d) => (d.id === existing.id ? { ...d, content, modified: modified ?? false } : d));
+      }
+      const doc: MarkdownDocument = { id: newDocId(), path, content, modified: modified ?? false };
+      eolRef.current.set(doc.id, eol);
+      lastSavedRef.current.set(doc.id, content);
+      setActiveId(doc.id);
+      return [...prev, doc];
     });
-    setActiveId(id);
     if (path) rememberPath(path);
   }, [rememberPath]);
 
   // ── Save ─────────────────────────────────────────────────────────
   const doSave = useCallback(async () => {
     const { path, content } = activeDoc;
-    const id = docId(path);
+    const id = activeDoc.id;
     const eol = eolRef.current.get(id) ?? "\n";
     const payload = applyEol(content, eol);
     try {
@@ -307,21 +319,21 @@ export default function App() {
         await saveFile(path, payload);
         setActiveDoc((d) => (d.content === content ? { ...d, modified: false } : d));
       }
-      lastSavedRef.current.set(docId(finalPath), content);
-      invoke("clear_recovery", { path: docId(finalPath) }).catch(() => {});
+      lastSavedRef.current.set(id, content);
+      invoke("clear_recovery", { path: finalPath ?? UNTITLED_KEY }).catch(() => {});
       showToast(t("toast.saved"));
     } catch { showToast(t("toast.saveFailed")); }
   }, [activeDoc, showToast, rememberPath]);
 
   const doSaveAs = useCallback(async () => {
     const { content, path } = activeDoc;
-    const id = docId(path);
+    const id = activeDoc.id;
     const eol = eolRef.current.get(id) ?? "\n";
     try {
       const p = await saveFileAs(applyEol(content, eol), path ? baseName(path) : undefined);
       if (p) {
         setActiveDoc((d) => ({ ...d, path: p, modified: false }));
-        lastSavedRef.current.set(docId(p), content);
+        lastSavedRef.current.set(id, content);
         rememberPath(p);
         showToast(t("toast.savedAs"));
       }
@@ -396,31 +408,33 @@ export default function App() {
 
   // New doc
   const doNew = useCallback(() => {
-    const newDoc: MarkdownDocument = { path: null, content: "", modified: false };
+    const newDoc: MarkdownDocument = { id: newDocId(), path: null, content: "", modified: false };
     setDocs((prev) => [...prev, newDoc]);
-    setActiveId(docId(newDoc.path));
+    setActiveId(newDoc.id);
     showToast(t("toast.newDoc"));
   }, [showToast]);
 
   // ── Close a doc ──────────────────────────────────────────────────
   const closeDoc = useCallback(async (id: string) => {
-    const doc = docs.find((d) => docId(d.path) === id);
+    const doc = docs.find((d) => d.id === id);
     if (!doc) return;
     if (doc.modified) {
       if (!(await confirmDialog(t("confirm.discard")))) return;
     }
     setDocs((prev) => {
-      const remaining = prev.filter((d) => docId(d.path) !== id);
+      const remaining = prev.filter((d) => d.id !== id);
       if (remaining.length === 0) {
-        const untitled: MarkdownDocument = { path: null, content: "", modified: false };
-        setActiveId(docId(untitled.path));
+        // Never leave zero documents — replace with a fresh untitled one.
+        const untitled: MarkdownDocument = { id: newDocId(), path: null, content: "", modified: false };
+        setActiveId(untitled.id);
         return [untitled];
       }
       return remaining;
     });
-    // If closing active doc, switch to first remaining
+    // If closing the active doc, switch to the first remaining one.
     if (activeId === id) {
-      setDocs((prev) => { setActiveId(docId(prev.find((d) => docId(d.path) !== id)?.path ?? null)); return prev; });
+      const next = docs.find((d) => d.id !== id);
+      if (next) setActiveId(next.id);
     }
   }, [docs, activeId]);
 
@@ -471,7 +485,7 @@ export default function App() {
     // would only make the user choose a destination twice.
     const doSaveAsWithFormat = useCallback(async () => {
       const { content, path } = activeDoc;
-      const id = docId(path);
+      const id = activeDoc.id;
       const eol = eolRef.current.get(id) ?? "\n";
       try {
         const { save: dialogSave } = await import("@tauri-apps/plugin-dialog");
@@ -490,7 +504,7 @@ export default function App() {
         }
         await saveFileAs(applyEol(content, eol), p);
         setActiveDoc((d) => ({ ...d, path: p, modified: false }));
-        lastSavedRef.current.set(docId(p), content);
+        lastSavedRef.current.set(id, content);
         rememberPath(p);
         showToast(t("toast.savedAs"));
       } catch {
@@ -529,7 +543,6 @@ export default function App() {
     try {
       if (DOCX_EXTS.includes(ext)) { showToast(t("toast.unsupportedType")); return; }
       const { content, eol } = normalizeEol(await file.text());
-      eolRef.current.set(docId(null), eol);
       openContent(content, null, eol);
       showToast(t("toast.fileOpened"));
     } catch { showToast(t("toast.cannotReadFile")); }
@@ -589,7 +602,7 @@ export default function App() {
     try {
       if (!(await exists(path))) return;
       const { content: diskContent } = normalizeEol(await readTextFile(path));
-      const id = docId(path);
+      const id = activeDoc.id;
       if (lastPathRef.current !== path) { lastPathRef.current = path; lastSavedRef.current.set(id, diskContent); return; }
       if (diskContent === (lastSavedRef.current.get(id) ?? "")) return;
       if (diskContent === activeDoc.content) { lastSavedRef.current.set(id, diskContent); return; }
@@ -597,7 +610,7 @@ export default function App() {
       if (choice) {
         const { eol } = normalizeEol(await readTextFile(path));
         eolRef.current.set(id, eol);
-        setActiveDoc(() => ({ path, content: diskContent, modified: false }));
+        setActiveDoc((d) => ({ ...d, path, content: diskContent, modified: false }));
         lastSavedRef.current.set(id, diskContent);
         lastPathRef.current = path;
         showToast(t("toast.reloaded"));
@@ -616,7 +629,7 @@ export default function App() {
 
   // ── Render ───────────────────────────────────────────────────────
   const tabDocs: TabDoc[] = docs.map((d) => ({
-    id: docId(d.path),
+    id: d.id,
     path: d.path,
     name: d.path ? baseName(d.path) : t("doc.untitled"),
     modified: d.modified,

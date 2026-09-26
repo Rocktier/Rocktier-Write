@@ -234,13 +234,15 @@ export const Editor = memo(function Editor({
     (window as unknown as { __cmView?: EditorView }).__cmView = viewRef.current ?? undefined;
   });
 
-  // Typewriter / focus scroll
+  // Typewriter / focus scroll: keep the active line at 40% of the viewport
+  // height — not centered — so more context stays visible below the cursor.
+  const FOCUS_SCROLL_ANCHOR = 0.4;
   useEffect(() => {
     if (focusMode === "off") return;
     const view = viewRef.current;
     if (!view) return;
     const lh = parseFloat(getComputedStyle(view.contentDOM).lineHeight) || 28;
-    const target = view.scrollDOM.clientHeight * 0.4;
+    const target = view.scrollDOM.clientHeight * FOCUS_SCROLL_ANCHOR;
     const desired = Math.max(0, (cursorLine - 1) * lh - target);
     if (Math.abs(view.scrollDOM.scrollTop - desired) > lh * 0.5) {
       view.scrollDOM.scrollTop = desired;
