@@ -83,7 +83,8 @@ const rocktierTheme = EditorView.theme({
   ".cm-content": {
     // 居中不在这一层做：cm-content 是 CM 弹性布局的一部分，宽度约束会被
     // flex-grow 吃掉；居中在宿主 .cm-root 上做（见 app.css）。
-    padding: "40px 48px 96px",
+    // padding-top 56px clears the floating Edit/Preview switch (~38px tall at top:10px)
+    padding: "56px 48px 96px",
     lineHeight: "1.8",
     whiteSpace: "pre-wrap",
     wordWrap: "break-word",

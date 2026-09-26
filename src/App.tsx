@@ -716,12 +716,33 @@ export default function App() {
             });
           }}
           onJumpTo={(line) => {
-            const cm = (window as unknown as { __cmView?: { state: unknown; dispatch: unknown } }).__cmView;
-            if (!cm) return;
-            // Use CM to position cursor
-            const view = cm as unknown as { state: { doc: { line: (n: number) => { from: number } }; selection: unknown }; dispatch: (t: unknown) => void };
-            const pos = view.state.doc.line(line).from;
-            view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+            const jump = () => {
+              const cm = (window as unknown as { __cmView?: unknown }).__cmView as
+                | { state: { doc: { line: (n: number) => { from: number } } }; dispatch: (spec: unknown) => void }
+                | undefined;
+              if (!cm) return;
+              // Use CM to position cursor
+              const pos = cm.state.doc.line(line).from;
+              cm.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+            };
+            if (viewMode !== "edit") {
+              // The editor surface is display:none while previewing; CM can't
+              // scroll it. Switch back first, then jump after layout settles.
+              // rAF alone is not enough: it is suspended for occluded/minimized
+              // windows, which would silently drop the jump. Timer fallback,
+              // first one to run wins via `done`.
+              setViewMode("edit");
+              let done = false;
+              const run = () => {
+                if (done) return;
+                done = true;
+                jump();
+              };
+              requestAnimationFrame(() => requestAnimationFrame(run));
+              setTimeout(run, 60);
+              return;
+            }
+            jump();
           }}
         />
         </aside>

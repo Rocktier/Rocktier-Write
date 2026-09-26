@@ -766,6 +766,7 @@ html.is-mac .toolbar {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   position: relative;
 }
 
@@ -774,6 +775,7 @@ html.is-mac .toolbar {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 /* Focus mode: everything outside the active paragraph or sentence is dimmed
@@ -792,6 +794,8 @@ html.is-mac .toolbar {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0; /* without this the flex item's min-height:auto = content height,
+                    which stretches CM's scroller to full doc height → never scrolls */
 }
 
 .editor-pane-wrap.hidden {
@@ -807,6 +811,7 @@ html.is-mac .toolbar {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   background: var(--bg-primary);
 }
 
@@ -829,13 +834,14 @@ html.is-mac .toolbar {
 
 .preview-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
 .preview-scroll .md-viewer {
   max-width: 760px;
   margin: 0 auto;
-  padding: 48px 48px 72px;
+  padding: 56px 48px 72px;
 }
 
 /* ───────────────────────────────────────────────────────────────────
@@ -1235,6 +1241,7 @@ html.is-mac .toolbar {
 
 .cm-root {
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
