@@ -1,7 +1,7 @@
 {
   "name": "rocktier-write",
   "version": "1.1.4",
-  "description": "Distraction-free long-form writing — Rocktier family",
+  "description": "Distraction-free long-form writing \u2014 Rocktier family",
   "private": true,
   "type": "module",
   "scripts": {
@@ -18,7 +18,6 @@
   "dependencies": {
     "@codemirror/commands": "^6.8.0",
     "@codemirror/lang-markdown": "^6.3.0",
-    "@codemirror/language": "^6.10.0",
     "@codemirror/search": "^6.5.0",
     "@codemirror/state": "^6.5.0",
     "@codemirror/view": "^6.36.0",
