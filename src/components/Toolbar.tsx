@@ -100,7 +100,31 @@ export const Toolbar = memo(function Toolbar({
           </svg>
         </button>
         <div className="brand">
-          <img className="brand-mark" src="/icon.svg" alt="" aria-hidden="true" />
+          <svg className="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <rect className="brand-tile" x="1" y="1" width="30" height="30" rx="8.5" />
+            <text
+              className="brand-letters"
+              x="17"
+              y="17.4"
+              fontSize="12"
+              fontWeight="700"
+              letterSpacing="-0.5"
+              textAnchor="middle"
+              dominantBaseline="central"
+            >
+              WR
+            </text>
+            <circle className="brand-badge" cx="8.6" cy="8.6" r="4.6" />
+            <path
+              d="M6.6 8.7l1.4 1.4 2.4-2.7"
+              stroke="#0a0a0a"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+            <circle className="brand-pip" cx="25.8" cy="6.2" r="2.2" />
+          </svg>
           <span className="brand-name">Rocktier<span className="tag">Write</span></span>
         </div>
 

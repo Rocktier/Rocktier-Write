@@ -81,7 +81,27 @@ html.is-mac .toolbar {
   width: 24px;
   height: 24px;
   flex-shrink: 0;
-  display: block;
+}
+
+/* Letter mark — 家族徽章母版：深色砖 + WR 双字母 + 左上对勾徽章 + 右上红点。
+   砖深色在两个主题下都不变，与 Dock 图标一致；发丝描边防其在近黑工具栏上消失。 */
+.brand-mark .brand-tile {
+  fill: #0a0a0a;
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.brand-mark .brand-letters {
+  fill: #ffffff;
+  font-family: var(--font-sans);
+}
+
+.brand-mark .brand-pip {
+  fill: var(--red);
+}
+
+.brand-mark .brand-badge {
+  fill: #ffffff;
 }
 
 /* 行宽紧张时 flex 会把可收缩的 svg 压到 0 宽 —— 图标凭空消失 */

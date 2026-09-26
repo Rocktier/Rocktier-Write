@@ -69,13 +69,13 @@
   --toolbar-h: 44px;
   --sidebar-w: 260px;
 
-  /* ── Radius (family-aligned: sm 12 / md 20 / lg 28) ──────────── */
-  /* ── Shape：一套圆角刻度，全界面只有这几档 ──────────────────────
-     xs 徽章/小标签 · sm 按钮与菜单项 · md 面板 · lg 大面板 · pill 分段控件与胶囊 */
+  /* ── Radius：家族锁定 12 / 20 / 28（准则 §三，与 MD 母版逐值一致）──
+     sm 按钮与菜单项 · md 面板 · lg 大面板 · pill 分段控件与胶囊 ·
+     xs 仅用于家族刻度不覆盖的微型徽章/计数点 */
   --radius-xs: 3px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
   --radius-pill: 999px;
 
   /* ── Spacing：4pt 网格（半步 2/6 用于紧凑控件内部）────────────── */
