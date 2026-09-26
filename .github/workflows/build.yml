@@ -1,7 +1,7 @@
 # Rocktier Write — CI build & release
 # macOS aarch64 dmg (Apple Silicon only; Intel <5% share, macOS Tahoe drops Intel)
 # Windows MSI (WiX) for direct download
-# Windows MSIX job reserved for future Microsoft Store submission (follow-up commit)
+# Windows MSIX (Microsoft Store) via @choochmeque/tauri-windows-bundle
 
 name: Build & Release
 
@@ -109,17 +109,27 @@ jobs:
           prerelease: false
           args: ""
 
-# MSIX for Store: follow-up commit once MSI build is stable.
-#
-# Plan:
-#   1. Add bundle.windows.msix config block to tauri.conf.json
-#        ((generatePackage: false, manifest with app identity — see
-#         https://v2.tauri.app/distribute/msix/ )
-#   2. Add third job: build-msix Windows runner runs
-#        cargo-tauri tauri bundle --bundle msix
-#        produces target/release/bundle/msix/Rocktier Write_1.1.0_x64.msix
-#   3. Upload .msix to release assets
-#   4. Submit .msix manually to Partner Center (auto-signed by Store)
-#
-# Why not now: msix bundle config requires testing Package Identity /
-# capabilities; MSI already covers direct download users.
+      # ── MSIX (Microsoft Store) ──────────────────────────────────────────
+      # tauri-windows-bundle 内部会跑 npm run tauri build -- --target
+      # x86_64-pc-windows-msvc --no-bundle（MSI/NSIS 跳过），再用 msixbundle-cli
+      # 打包。Identity（Name/Publisher）取 src-tauri/gen/windows/bundle.config.json，
+      # 必须与 Partner Center 预留身份一致；Store 侧重新签名，无需 pfx。
+      # md 文件关联自动从 tauri.conf.json 的 bundle.fileAssociations 折叠进来。
+      - name: Build MSIX (Microsoft Store)
+        run: npm run tauri:windows:build
+
+      - name: Upload MSIX artifact (branch)
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rocktier-Write-windows-msix
+          path: src-tauri/target/msix/*.msix*
+          if-no-files-found: error
+
+      - name: Attach MSIX to release (tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: src-tauri/target/msix/*.msix*
+          generate_release_notes: false

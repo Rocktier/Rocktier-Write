@@ -12,8 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "tauri:dev": "tauri dev",
-    "tauri:build": "echo 'Use GitHub Actions: Rocktier/Rocktier-Write workflow'",
-    "tauri:windows:build": "echo 'Use GitHub Actions: Rocktier/Rocktier-Write workflow'"
+    "tauri:build": "tauri build",
+    "tauri:windows:build": "tauri-windows-bundle build --runner npm"
   },
   "dependencies": {
     "@codemirror/commands": "^6.8.0",
