@@ -47,6 +47,13 @@ export const TabBar = memo(function TabBar({ tabs, activeId, onSelect, onClose, 
       e.preventDefault();
       onSelect(tabs[index].id);
       return;
+    } else if (e.key === "Escape") {
+      // Esc closes the focused tab (ARIA tablist pattern); stopPropagation
+      // keeps other Esc handlers (find bar, goal input) from firing too.
+      e.preventDefault();
+      e.stopPropagation();
+      onClose(tabs[index].id);
+      return;
     } else return;
     e.preventDefault();
     onSelect(tabs[next].id);
@@ -65,6 +72,7 @@ export const TabBar = memo(function TabBar({ tabs, activeId, onSelect, onClose, 
           onClick={() => onSelect(tab.id)}
           onKeyDown={(e) => onTabKeyDown(e, i)}
           title={tab.path || tab.name}
+          aria-label={tab.name}
         >
           <span className="tab-name">{tab.path ? baseName(tab.path) : tab.name}</span>
           {tab.modified && <span className="tab-dot" aria-label={t("toolbar.unsaved")} />}
