@@ -11,6 +11,12 @@ interface Props {
   focusMode: FocusMode;
   onCycleFocus: () => void;
   wordGoal: number;
+  /** 当前标签最近一次保存时刻（未保存过为 null） */
+  savedAt: number | null;
+  /** 当前标签草稿自动保存时刻 */
+  draftAt: number | null;
+  /** 当前标签是否有未保存修改 */
+  modified: boolean;
 }
 
 export const StatusBar = memo(function StatusBar({
@@ -21,10 +27,22 @@ export const StatusBar = memo(function StatusBar({
   focusMode,
   onCycleFocus,
   wordGoal,
+  savedAt,
+  draftAt,
+  modified,
 }: Props) {
   useUiLang();
 
   const goalProgress = wordGoal > 0 ? Math.min(100, Math.round((words / wordGoal) * 100)) : 0;
+
+  // 保存状态显式化（W-P1-09）：手动保存 > 草稿自动保存 > 未保存。
+  // 未修改且从未手动保存过的空白文档不显示任何保存态。
+  const fmtTime = (ts: number) => {
+    const d = new Date(ts);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+  const saveState: "saved" | "draft" | "unsaved" | null =
+    !modified && savedAt ? "saved" : modified && draftAt ? "draft" : modified ? "unsaved" : null;
 
   return (
     <footer className="status-bar">
@@ -43,6 +61,22 @@ export const StatusBar = memo(function StatusBar({
         <>
           <span className="sep" />
           <span className="status-item status-goal">{t("status.goal", { pct: goalProgress })}</span>
+        </>
+      )}
+      {saveState && (
+        <>
+          <span className="sep" />
+          <span
+            className={`status-item status-save${saveState === "unsaved" ? " unsaved" : ""}`}
+            title={
+              saveState === "saved" ? t("status.savedTitle") :
+              saveState === "draft" ? t("status.draftTitle") : t("status.unsavedTitle")
+            }
+          >
+            {saveState === "saved" ? t("status.savedAt", { time: fmtTime(savedAt as number) }) :
+             saveState === "draft" ? t("status.draftSavedAt", { time: fmtTime(draftAt as number) }) :
+             t("status.unsaved")}
+          </span>
         </>
       )}
       <div className="status-right">

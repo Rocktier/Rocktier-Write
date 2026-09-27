@@ -29,6 +29,7 @@ import { extractFrontmatter } from "./services/markdown";
 const LAST_PATH_KEY = "rocktier-write-last-path";
 const RECENT_KEY = "rocktier-write-recent";
 const VIEW_MODE_KEY = "rocktier-write-view-mode";
+const TYPEWRITER_KEY = "rocktier-write-typewriter";
 const RECENT_MAX = 5;
 const UNTITLED_KEY = "__untitled__";
 
@@ -82,11 +83,22 @@ export default function App() {
   }, []);
   useEffect(() => { refreshRecent(); }, [refreshRecent]);
 
+  // Typewriter scrolling（光标锁视口 40%）：独立于 Focus Mode 的开关（W-P1-02）
+  const [typewriter, setTypewriter] = useState(() => localStorage.getItem(TYPEWRITER_KEY) === "1");
+  // Persist typewriter preference across sessions
+  useEffect(() => { localStorage.setItem(TYPEWRITER_KEY, typewriter ? "1" : "0"); }, [typewriter]);
+
+  // 保存状态可见化（W-P1-09）：最近一次手动保存时间（按标签）+ 当前标签草稿自动保存时间
+  const [savedAtMap, setSavedAtMap] = useState<Record<string, number>>({});
+  const [draftAt, setDraftAt] = useState<number | null>(null);
+  useEffect(() => { setDraftAt(null); }, [activeId]);
+
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkingRef = useRef(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<Map<string, string>>(new Map());
   const lastPathRef = useRef<string | null>(null);
+  const lastTypeRef = useRef(0); // 最近一次击 tick（供外改轮询避让打字间隙，W-P1-04）
   const [chapterGoals, setChapterGoals] = useState<Map<string, Record<number, number>>>(new Map());
   const eolRef = useRef<Map<string, Eol>>(new Map());
 
@@ -252,34 +264,6 @@ export default function App() {
     return () => { cancelled = true; };
   }, [rememberPath]);
 
-  // ── Importer / Open a document ───────────────────────────────────
-  const doOpen = useCallback(async () => {
-    const hasUnsaved = docs.some((d) => d.modified);
-    if (hasUnsaved) { if (!(await confirmDialog(t("confirm.discard")))) return; }
-
-    const r = await openFile();
-    if (r) {
-      if (r.path.toLowerCase().endsWith(".docx")) {
-        try {
-          const md = await invoke<string>("import_docx", { path: r.path });
-          const newDoc: MarkdownDocument = { id: newDocId(), path: null, content: md, modified: true };
-          setDocs([newDoc]);
-          setActiveId(newDoc.id);
-          showToast(t("toast.docxImported"));
-        } catch { showToast(t("toast.cannotOpenFile")); }
-        return;
-      }
-      const newDoc: MarkdownDocument = { id: newDocId(), path: r.path, content: r.content, modified: false };
-      eolRef.current.set(newDoc.id, r.eol);
-      lastSavedRef.current.set(newDoc.id, r.content);
-      lastPathRef.current = r.path;
-      setDocs([newDoc]);
-      setActiveId(newDoc.id);
-      rememberPath(r.path);
-      showToast(t("toast.fileOpened"));
-    }
-  }, [docs, showToast, rememberPath]);
-
   const openContent = useCallback((content: string, path: string | null, eol: Eol, modified?: boolean) => {
     lastPathRef.current = path;
     setDocs((prev) => {
@@ -301,6 +285,24 @@ export default function App() {
     if (path) rememberPath(path);
   }, [rememberPath]);
 
+  // ── Importer / Open a document ───────────────────────────────────
+  // 打开文件与拖入/导入同语义：进标签页，同名文件聚焦既有标签，
+  // 绝不整组替换、更不会连带丢掉别的未保存标签（W-P1-01）。
+  const doOpen = useCallback(async () => {
+    const r = await openFile();
+    if (!r) return;
+    if (r.path.toLowerCase().endsWith(".docx")) {
+      try {
+        const md = await invoke<string>("import_docx", { path: r.path });
+        openContent(md, null, "\n", true);
+        showToast(t("toast.docxImported"));
+      } catch { showToast(t("toast.cannotOpenFile")); }
+      return;
+    }
+    openContent(r.content, r.path, r.eol);
+    showToast(t("toast.fileOpened"));
+  }, [openContent, showToast]);
+
   // ── Save ─────────────────────────────────────────────────────────
   const doSave = useCallback(async () => {
     const { path, content } = activeDoc;
@@ -320,6 +322,7 @@ export default function App() {
         setActiveDoc((d) => (d.content === content ? { ...d, modified: false } : d));
       }
       lastSavedRef.current.set(id, content);
+      setSavedAtMap((m) => ({ ...m, [id]: Date.now() }));
       invoke("clear_recovery", { path: finalPath ?? UNTITLED_KEY }).catch(() => {});
       showToast(t("toast.saved"));
     } catch { showToast(t("toast.saveFailed")); }
@@ -334,6 +337,7 @@ export default function App() {
       if (p) {
         setActiveDoc((d) => ({ ...d, path: p, modified: false }));
         lastSavedRef.current.set(id, content);
+        setSavedAtMap((m) => ({ ...m, [id]: Date.now() }));
         rememberPath(p);
         showToast(t("toast.savedAs"));
       }
@@ -505,6 +509,7 @@ export default function App() {
         await saveFileAs(applyEol(content, eol), p);
         setActiveDoc((d) => ({ ...d, path: p, modified: false }));
         lastSavedRef.current.set(id, content);
+        setSavedAtMap((m) => ({ ...m, [id]: Date.now() }));
         rememberPath(p);
         showToast(t("toast.savedAs"));
       } catch {
@@ -588,13 +593,18 @@ export default function App() {
     if (!activeDoc.modified) return;
     autoSaveTimerRef.current = setTimeout(() => {
       const path = activePathRef.current ?? UNTITLED_KEY;
-      invoke("save_recovery", { path, content: activeContentRef.current }).catch(() => {});
+      invoke("save_recovery", { path, content: activeContentRef.current })
+        .then(() => setDraftAt(Date.now()))
+        .catch(() => {});
     }, 5000);
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
   }, [activeDoc.content, activeDoc.path, activeDoc.modified]);
 
   // ── External change detection ────────────────────────────────────
   const checkExternalChange = useCallback(async () => {
+    // 打字间隙避让：最近 4 秒还在击键就不比对/不弹框（W-P1-04，每 3 秒整文件
+    // 重读并可能弹模态曾把用户从输入中拽走）。
+    if (Date.now() - lastTypeRef.current < 4000) return;
     if (checkingRef.current) return;
     const path = activeDoc.path;
     if (!path || !isTauri) return;
@@ -678,6 +688,8 @@ export default function App() {
         }}
         focusMode={focusMode}
         onCycleFocus={cycleFocus}
+        typewriter={typewriter}
+        onToggleTypewriter={() => setTypewriter((v) => !v)}
         wordGoal={wordGoal}
         onSetWordGoal={setWordGoal}
         hasFrontmatter={hasFrontmatter}
@@ -767,11 +779,15 @@ export default function App() {
           <div className={`editor-pane-wrap ${viewMode === "preview" ? "hidden" : ""}`}>
             <Editor
               content={activeDoc.content}
-              onChange={(content) => setActiveDoc((d) => ({ ...d, content, modified: true }))}
+              onChange={(content) => {
+                lastTypeRef.current = Date.now(); // 击节拍：外改轮询据此避让（W-P1-04）
+                setActiveDoc((d) => ({ ...d, content, modified: true }));
+              }}
               onEditorReady={() => setCmReady(true)}
               onCursorMove={onCursorMove}
               onPasteImage={onPasteImage}
               focusMode={focusMode}
+              typewriter={typewriter}
               cursorLine={cursorLine}
               placeholder={t("editor.placeholder")}
             />
@@ -791,6 +807,9 @@ export default function App() {
         focusMode={focusMode}
         onCycleFocus={cycleFocus}
         wordGoal={wordGoal}
+        savedAt={savedAtMap[activeDoc.id] ?? null}
+        draftAt={draftAt}
+        modified={activeDoc.modified}
       />
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

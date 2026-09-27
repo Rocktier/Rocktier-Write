@@ -285,24 +285,47 @@ fn clear_recovery(app: tauri::AppHandle, path: String) -> Result<(), String> {
 /// 由前端在挂载后按当前 UI 语言调用，语言切换时可重建。
 /// 自定义项的点击经 on_menu_event 转成 "menu-action" 事件发给前端；
 /// 预定义项（撤销/拷贝/粘贴/最小化等）由系统自动本地化并自带快捷键。
-fn build_app_menu(app: &tauri::AppHandle, lang: &str) -> tauri::Result<()> {
-    let zh = lang.starts_with("zh");
-    let l = |zhv: &'static str, en: &'static str| if zh { zhv } else { en };
+/// Menu label in the current UI language. Order matches `i18n.ts`: en, zh, ja,
+/// ko, fr, de, es, pt. The native menu previously only had zh/en pairs — every
+/// other interface language got an English menu bar (W-P1-07, 准则 §17).
+fn tr(
+    lang: &str,
+    en: &'static str,
+    zh: &'static str,
+    ja: &'static str,
+    ko: &'static str,
+    fr: &'static str,
+    de: &'static str,
+    es: &'static str,
+    pt: &'static str,
+) -> &'static str {
+    match lang {
+        "zh" => zh,
+        "ja" => ja,
+        "ko" => ko,
+        "fr" => fr,
+        "de" => de,
+        "es" => es,
+        "pt" => pt,
+        _ => en,
+    }
+}
 
-    let new_i = MenuItem::with_id(app, "new", l("新建", "New"), true, Some("CmdOrCtrl+N"))?;
-    let open_i = MenuItem::with_id(app, "open", l("打开…", "Open…"), true, Some("CmdOrCtrl+O"))?;
-    let save_i = MenuItem::with_id(app, "save", l("保存", "Save"), true, Some("CmdOrCtrl+S"))?;
+fn build_app_menu(app: &tauri::AppHandle, lang: &str) -> tauri::Result<()> {
+    let new_i = MenuItem::with_id(app, "new", tr(lang, "New", "新建", "新規", "새 문서", "Nouveau", "Neu", "Nuevo", "Novo"), true, Some("CmdOrCtrl+N"))?;
+    let open_i = MenuItem::with_id(app, "open", tr(lang, "Open…", "打开…", "開く…", "열기…", "Ouvrir…", "Öffnen…", "Abrir…", "Abrir…"), true, Some("CmdOrCtrl+O"))?;
+    let save_i = MenuItem::with_id(app, "save", tr(lang, "Save", "保存", "保存", "저장", "Enregistrer", "Speichern", "Guardar", "Guardar"), true, Some("CmdOrCtrl+S"))?;
     let save_as_i = MenuItem::with_id(
         app,
         "save-as",
-        l("另存为…", "Save As…"),
+        tr(lang, "Save As…", "另存为…", "別名で保存…", "다른 이름으로 저장…", "Enregistrer sous…", "Speichern unter…", "Guardar como…", "Guardar como…"),
         true,
         Some("CmdOrCtrl+Shift+S"),
     )?;
     let export_i = MenuItem::with_id(
         app,
         "export-pdf",
-        l("导出 PDF…", "Export PDF…"),
+        tr(lang, "Export PDF…", "导出 PDF…", "PDF として書き出す…", "PDF로 내보내기…", "Exporter en PDF…", "Als PDF exportieren…", "Exportar PDF…", "Exportar PDF…"),
         true,
         Some("CmdOrCtrl+Shift+P"),
     )?;
@@ -314,20 +337,20 @@ fn build_app_menu(app: &tauri::AppHandle, lang: &str) -> tauri::Result<()> {
         &[
             &PredefinedMenuItem::about(
                 app,
-                Some(l("关于 Rocktier Write", "About Rocktier Write")),
+                Some(tr(lang, "About Rocktier Write", "关于 Rocktier Write", "Rocktier Write について", "Rocktier Write 정보", "À propos de Rocktier Write", "Über Rocktier Write", "Acerca de Rocktier Write", "Sobre o Rocktier Write")),
                 None,
             )?,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::hide(app, None)?,
             &PredefinedMenuItem::hide_others(app, None)?,
             &PredefinedMenuItem::separator(app)?,
-            &MenuItem::with_id(app, "quit", l("退出", "Quit"), true, Some("CmdOrCtrl+Q"))?,
+            &MenuItem::with_id(app, "quit", tr(lang, "Quit", "退出", "終了", "종료", "Quitter", "Beenden", "Salir", "Sair"), true, Some("CmdOrCtrl+Q"))?,
         ],
     )?;
 
     let file_menu = Submenu::with_items(
         app,
-        l("文件", "File"),
+        tr(lang, "File", "文件", "ファイル", "파일", "Fichier", "Datei", "Archivo", "Ficheiro"),
         true,
         &[
             &new_i,
@@ -344,7 +367,7 @@ fn build_app_menu(app: &tauri::AppHandle, lang: &str) -> tauri::Result<()> {
 
     let edit_menu = Submenu::with_items(
         app,
-        l("编辑", "Edit"),
+        tr(lang, "Edit", "编辑", "編集", "편집", "Édition", "Bearbeiten", "Editar", "Editar"),
         true,
         &[
             &PredefinedMenuItem::undo(app, None)?,
@@ -360,22 +383,22 @@ fn build_app_menu(app: &tauri::AppHandle, lang: &str) -> tauri::Result<()> {
     let sidebar_i = MenuItem::with_id(
         app,
         "toggle-sidebar",
-        l("切换侧栏", "Toggle Sidebar"),
+        tr(lang, "Toggle Sidebar", "切换侧栏", "サイドバー切り替え", "사이드바 전환", "Afficher/Masquer la barre latérale", "Seitenleiste umschalten", "Alternar barra lateral", "Alternar barra lateral"),
         true,
         Some("CmdOrCtrl+\\"),
     )?;
-    let theme_i = MenuItem::with_id(app, "toggle-theme", l("切换日夜模式", "Toggle Theme"), true, None::<&str>)?;
-    let find_i = MenuItem::with_id(app, "find", l("查找替换", "Find & Replace"), true, Some("CmdOrCtrl+F"))?;
+    let theme_i = MenuItem::with_id(app, "toggle-theme", tr(lang, "Toggle Theme", "切换日夜模式", "テーマ切り替え", "테마 전환", "Basculer le thème", "Thema umschalten", "Alternar tema", "Alternar tema"), true, None::<&str>)?;
+    let find_i = MenuItem::with_id(app, "find", tr(lang, "Find & Replace", "查找替换", "検索と置換", "찾기 및 바꾸기", "Rechercher et remplacer", "Suchen & Ersetzen", "Buscar y reemplazar", "Procurar e substituir"), true, Some("CmdOrCtrl+F"))?;
     let view_menu = Submenu::with_items(
         app,
-        l("显示", "View"),
+        tr(lang, "View", "显示", "表示", "보기", "Affichage", "Ansicht", "Ver", "Ver"),
         true,
         &[&sidebar_i, &theme_i, &find_i],
     )?;
 
     let window_menu = Submenu::with_items(
         app,
-        l("窗口", "Window"),
+        tr(lang, "Window", "窗口", "ウィンドウ", "창", "Fenêtre", "Fenster", "Ventana", "Janela"),
         true,
         &[
             &PredefinedMenuItem::minimize(app, None)?,
@@ -384,9 +407,9 @@ fn build_app_menu(app: &tauri::AppHandle, lang: &str) -> tauri::Result<()> {
         ],
     )?;
 
-    let site_i = MenuItem::with_id(app, "website", l("官方网站", "Website"), true, None::<&str>)?;
-    let mail_i = MenuItem::with_id(app, "feedback", l("反馈", "Feedback"), true, None::<&str>)?;
-    let help_menu = Submenu::with_items(app, l("帮助", "Help"), true, &[&site_i, &mail_i])?;
+    let site_i = MenuItem::with_id(app, "website", tr(lang, "Website", "官方网站", "公式サイト", "공식 사이트", "Site officiel", "Offizielle Website", "Sitio web", "Site oficial"), true, None::<&str>)?;
+    let mail_i = MenuItem::with_id(app, "feedback", tr(lang, "Feedback", "反馈", "フィードバック", "피드백", "Retour d'information", "Rückmeldung", "Comentarios", "Comentários"), true, None::<&str>)?;
+    let help_menu = Submenu::with_items(app, tr(lang, "Help", "帮助", "ヘルプ", "도움말", "Aide", "Hilfe", "Ayuda", "Ajuda"), true, &[&site_i, &mail_i])?;
 
     let menu = Menu::with_items(
         app,
@@ -695,8 +718,15 @@ fn export_docx(markdown: String, output_path: String) -> Result<(), String> {
         std::fs::create_dir_all(parent).map_err(|e| format!("mkdir: {e}"))?;
     }
 
-    // Atomic write: temp file + rename (same pattern as save_document)
-    let tmp_path = path.with_extension("docx.tmp");
+    // Atomic write: temp file + rename. Unique temp name (PID-suffixed) so two
+    // racing exports never share — and truncate each other's — one temp file.
+    let tmp_path = path.with_file_name(format!(
+        ".{}.{}.docx.tmp",
+        path.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("document"),
+        std::process::id()
+    ));
     {
         use std::io::{Cursor, Write};
         let bytes = {

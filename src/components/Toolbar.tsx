@@ -28,6 +28,9 @@ interface Props {
   onToggleInfo: () => void;
   focusMode: FocusMode;
   onCycleFocus: () => void;
+  /** Typewriter scrolling 开关（独立于 Focus Mode，经设置持久化） */
+  typewriter: boolean;
+  onToggleTypewriter: () => void;
   wordGoal: number;
   words: number;
   onSetWordGoal: (n: number) => void;
@@ -59,6 +62,8 @@ export const Toolbar = memo(function Toolbar({
   onToggleInfo,
   focusMode,
   onCycleFocus,
+  typewriter,
+  onToggleTypewriter,
   wordGoal,
   words,
   onSetWordGoal,
@@ -252,6 +257,18 @@ export const Toolbar = memo(function Toolbar({
         <button className="tbar-btn labeled" onClick={onCycleFocus} title={t("toolbar.focusCycle")} aria-label={t("toolbar.focusCycle")}>
           <span className="tbar-label">{t("toolbar.focus")}</span>
           <span className={`state ${focusMode !== "off" ? "on" : ""}`}>{FOCUS_MODE_WORD[focusMode]()}</span>
+        </button>
+
+        {/* Typewriter：光标锁 40%。与 Focus 平级的独立开关 */}
+        <button
+          className={`tbar-btn labeled ${typewriter ? "active" : ""}`}
+          onClick={onToggleTypewriter}
+          title={t("toolbar.typewriterCycle")}
+          aria-label={t("toolbar.typewriterCycle")}
+          aria-pressed={typewriter}
+        >
+          <span className="tbar-label">{t("toolbar.typewriter")}</span>
+          <span className={`state ${typewriter ? "on" : ""}`}>{t(typewriter ? "toolbar.typewriterOn" : "toolbar.typewriterOff")}</span>
         </button>
 
         {hasFrontmatter && (

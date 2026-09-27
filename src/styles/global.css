@@ -111,7 +111,7 @@ img {
 }
 
 ::placeholder {
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   font-style: italic;
 }
 

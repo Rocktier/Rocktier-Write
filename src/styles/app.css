@@ -202,10 +202,10 @@ html.is-mac .toolbar {
   display: inline-flex;
   align-items: center;
   position: relative;
-  border-radius: var(--r-sm);
+  border-radius: var(--radius-sm);
 }
 
-.split .tbar-btn:hover { background: none; color: var(--ink); }
+.split .tbar-btn:hover { background: none; color: var(--text-primary); }
 .split:hover { background: var(--accent-muted); }
 
 .split-main { border-top-right-radius: 0; border-bottom-right-radius: 0; }
@@ -218,22 +218,22 @@ html.is-mac .toolbar {
   justify-content: center;
   border: none;
   background: none;
-  color: var(--ink-3);
+  color: var(--text-tertiary);
   cursor: pointer;
-  border-top-right-radius: var(--r-sm);
-  border-bottom-right-radius: var(--r-sm);
+  border-top-right-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
 }
 
-.split-caret:hover, .split-caret[aria-expanded="true"] { color: var(--ink); background: var(--accent-muted); }
+.split-caret:hover, .split-caret[aria-expanded="true"] { color: var(--text-primary); background: var(--accent-muted); }
 
 /* 带状态的开关：状态值住芯片，激活时反色；字号与按钮小标签一致 */
 .tbar-btn .state {
   font-size: var(--fs-xs);
   font-weight: 600;
   background: var(--accent-muted);
-  border-radius: var(--r-xs);
+  border-radius: var(--radius-xs);
   padding: 1px 6px;
-  color: var(--ink);
+  color: var(--text-primary);
 }
 
 /* 搜索高亮：常规匹配淡琥珀、当前匹配深一档（默认 CM 样式在两主题下都太隐身） */
@@ -354,7 +354,7 @@ html.is-mac .toolbar {
 .goal-text {
   font-size: var(--fs-2xs);
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -444,7 +444,7 @@ html.is-mac .toolbar {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -459,7 +459,7 @@ html.is-mac .toolbar {
 .chapter-empty {
   padding: 16px 12px;
   font-size: var(--fs-sm);
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   font-style: italic;
   line-height: 1.5;
 }
@@ -613,7 +613,7 @@ html.is-mac .toolbar {
 }
 
 .chapter-item.passed {
-  color: var(--text-muted);
+  color: var(--text-tertiary);
 }
 
 /* ── Editor ────────────────────────────────────────────────────── */
@@ -773,7 +773,7 @@ html.is-mac .toolbar {
 /* Focus mode: everything outside the active paragraph or sentence is dimmed
    by the CodeMirror decoration in focusMode.ts. These rules are the dimming. */
 .cm-focus-dim {
-  color: var(--text-muted);
+  color: var(--dim-text);
 }
 /* ───────────────────────────────────────────────────────────────────
    View toggle wrappers (v1.1.3)
@@ -878,7 +878,7 @@ html.is-mac .toolbar {
 
 .fm-empty {
   font-size: var(--fs-xs);
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   font-style: italic;
   padding: 4px 0;
 }
@@ -911,7 +911,7 @@ html.is-mac .toolbar {
 .fm-remove {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   cursor: pointer;
   font-size: var(--fs-md);
   line-height: 1;
@@ -981,7 +981,7 @@ html.is-mac .toolbar {
   background: var(--bg-floating);
   border: 1px solid var(--border-mid);
   border-radius: var(--radius-lg);
-  box-shadow: var(--glow-lg);
+  box-shadow: var(--glow-md);
   min-width: 260px;
   max-width: 360px;
   max-height: 320px;
@@ -1006,7 +1006,7 @@ html.is-mac .toolbar {
 .recent-clear {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   cursor: pointer;
   font-size: var(--fs-2xs);
   text-transform: none;
@@ -1043,7 +1043,7 @@ html.is-mac .toolbar {
 
 .recent-path {
   font-size: var(--fs-2xs);
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   font-family: var(--font-mono);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1054,7 +1054,7 @@ html.is-mac .toolbar {
 .recent-empty {
   padding: 12px;
   font-size: var(--fs-sm);
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   text-align: center;
 }
 
@@ -1068,7 +1068,7 @@ html.is-mac .toolbar {
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
   font-size: var(--fs-xs);
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   gap: 8px;
   flex-shrink: 0;
   user-select: none;
@@ -1106,7 +1106,7 @@ html.is-mac .toolbar {
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   font-size: var(--fs-xs);
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   cursor: pointer;
 }
 
@@ -1127,13 +1127,12 @@ html.is-mac .toolbar {
   padding: 0 2px;
   font: inherit;
   font-size: var(--fs-xs);
-  color: inherit;
+  color: var(--text-secondary);
   cursor: pointer;
-  opacity: 0.6;
 }
 
 .status-lang:hover {
-  opacity: 1;
+  color: var(--text-primary);
 }
 
 /* ── Toast ─────────────────────────────────────────────────────── */
@@ -1182,7 +1181,7 @@ html.is-mac .toolbar {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   font-size: var(--fs-sm);
 }
 
@@ -1230,7 +1229,7 @@ html.is-mac .toolbar {
 
 /* Placeholder: CM uses .cm-placeholder attribute on content */
 .cm-host .cm-placeholder {
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   font-style: italic;
 }
 
@@ -1359,7 +1358,7 @@ html.is-mac .toolbar {
 
 .find-counter {
   font-size: var(--fs-sm);
-  color: var(--text-muted);
+  color: var(--text-tertiary);
   min-width: 40px;
   text-align: center;
   flex-shrink: 0;

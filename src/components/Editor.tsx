@@ -26,6 +26,8 @@ interface Props {
   onCursorMove?: (line: number) => void;
   onPasteImage?: (mime: string, base64Data: string) => void;
   focusMode: FocusMode;
+  /** Typewriter scrolling（光标锁 40%）——独立于 Focus Mode 的开关 */
+  typewriter: boolean;
   cursorLine: number;
   placeholder?: string;
 }
@@ -91,8 +93,9 @@ const rocktierTheme = EditorView.theme({
     tabSize: "4",
     caretColor: "var(--accent)",
   },
-  ".cm-content:focus": { outline: "none" },
-  ".cm-placeholder": { color: "var(--text-muted)", fontStyle: "italic" },
+  // 键盘聚焦时补一个高对比焦点环（点击进入文字区是文本输入惯例，不给鼠标噪音）
+  ".cm-content:focus-visible": { outline: "2px solid var(--accent)", outlineOffset: "-2px" },
+  ".cm-placeholder": { color: "var(--text-tertiary)", fontStyle: "italic" },
   ".cm-line": { padding: "0" },
   // Markdown syntax highlighting (subtle, monochrome)
   ".tok-heading": { fontWeight: "700", color: "var(--text-primary)" },
@@ -116,6 +119,7 @@ export const Editor = memo(function Editor({
   onCursorMove,
   onPasteImage,
   focusMode,
+  typewriter,
   cursorLine,
   placeholder,
 }: Props) {
@@ -234,20 +238,29 @@ export const Editor = memo(function Editor({
     (window as unknown as { __cmView?: EditorView }).__cmView = viewRef.current ?? undefined;
   });
 
-  // Typewriter / focus scroll: keep the active line at 40% of the viewport
-  // height — not centered — so more context stays visible below the cursor.
+  // Typewriter scrolling: 光标锁在视口 40% 处。独立开关——不再焊死在
+  // Focus Mode 上（W-P1-02）。坐标算取走 CM 的 coordsAtPos：折行、图片块、
+  // 可变行高都正确；不再手算 (行号-1)×行高。
   const FOCUS_SCROLL_ANCHOR = 0.4;
   useEffect(() => {
-    if (focusMode === "off") return;
+    if (focusMode === "off" && !typewriter) return;
     const view = viewRef.current;
     if (!view) return;
-    const lh = parseFloat(getComputedStyle(view.contentDOM).lineHeight) || 28;
-    const target = view.scrollDOM.clientHeight * FOCUS_SCROLL_ANCHOR;
-    const desired = Math.max(0, (cursorLine - 1) * lh - target);
-    if (Math.abs(view.scrollDOM.scrollTop - desired) > lh * 0.5) {
-      view.scrollDOM.scrollTop = desired;
+    const pos = view.state.selection.main.head;
+    let coords: { top: number } | null = null;
+    try {
+      coords = view.coordsAtPos(pos);
+    } catch {
+      return; // 布局未就绪（视图切换/隐藏时），下次光标移动再钉
     }
-  }, [cursorLine, focusMode]);
+    if (!coords) return;
+    const scroller = view.scrollDOM;
+    const anchor = scroller.clientHeight * FOCUS_SCROLL_ANCHOR;
+    const delta = coords.top - scroller.getBoundingClientRect().top - anchor;
+    if (Math.abs(delta) > 2) {
+      scroller.scrollTo({ top: scroller.scrollTop + delta });
+    }
+  }, [cursorLine, focusMode, typewriter]);
 
   return (
     <div

@@ -51,10 +51,28 @@ fn write_license(app_data_dir: &std::path::Path, record: &LicenseRecord) -> Resu
         fs::create_dir_all(parent).map_err(|e| format!("mkdir: {e}"))?;
     }
     let json = serde_json::to_string_pretty(record).map_err(|e| format!("serialize: {e}"))?;
-    let tmp = path.with_extension("lic.tmp");
-    fs::write(&tmp, json).map_err(|e| format!("write: {e}"))?;
-    fs::rename(&tmp, &path).map_err(|e| format!("rename: {e}"))?;
-    Ok(())
+    // 原子落盘：唯一临时名 → fsync → rename，与 lib.rs save_document /
+    // save_recovery 同一模式。固定名 .tmp + 无 fsync 时，崩溃或断电可能把
+    // license.json 停在空文件/旧内容——付费凭证是最不能丢的状态。
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.subsec_nanos())
+        .unwrap_or(0);
+    let tmp = path.with_file_name(format!(".license.{}.{}.tmp", std::process::id(), nanos));
+    {
+        use std::io::Write;
+        let mut f = fs::File::create(&tmp).map_err(|e| format!("write: {e}"))?;
+        f.write_all(json.as_bytes()).map_err(|e| format!("write: {e}"))?;
+        // rename 只发布名字；没有 fsync，掉电后可能是零长度的 license.json。
+        f.sync_all().map_err(|e| format!("sync: {e}"))?;
+    }
+    match fs::rename(&tmp, &path) {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            let _ = fs::remove_file(&tmp);
+            Err(format!("rename: {e}"))
+        }
+    }
 }
 
 fn iso_now() -> String {

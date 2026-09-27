@@ -24,8 +24,10 @@
   /* ── Text hierarchy ──────────────────────────────────────────── */
   --text-primary: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.70);
-  --text-tertiary: rgba(255, 255, 255, 0.45);
+  --text-tertiary: rgba(255, 255, 255, 0.55);
   --text-muted: rgba(255, 255, 255, 0.30);
+  /* Focus 模式淡化专用，不承载正文信息（刻意低于三级文本对比度） */
+  --dim-text: rgba(255, 255, 255, 0.30);
 
   /* ── Accent ──────────────────────────────────────────────────── */
   --accent: #ffffff;
@@ -133,8 +135,10 @@
   --border-strong: rgba(0, 0, 0, 0.20);
   --text-primary: rgba(0, 0, 0, 0.95);
   --text-secondary: rgba(0, 0, 0, 0.65);
-  --text-tertiary: rgba(0, 0, 0, 0.45);
+  --text-tertiary: rgba(0, 0, 0, 0.55);
   --text-muted: rgba(0, 0, 0, 0.28);
+  /* Focus 模式淡化专用，不承载正文信息（刻意低于三级文本对比度） */
+  --dim-text: rgba(0, 0, 0, 0.28);
   --accent: #000000;
    --on-accent: #ffffff;
   --accent-warn: #b06a00;
