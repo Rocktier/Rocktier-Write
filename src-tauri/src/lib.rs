@@ -747,13 +747,22 @@ fn paddle_deactivate(app_handle: tauri::AppHandle) -> Result<(), String> {
     paddle::remove_license(&path)
 }
 
+/// MAS 构建标识：前端据此跳过自更新检查（App Store 渠道由系统管理更新）。
+#[tauri::command]
+fn is_mas_build() -> bool {
+    cfg!(feature = "mas")
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_fs::init());
+    // MAS 渠道不允许自更新：updater 仅在非 mas 构建注册
+    #[cfg(not(feature = "mas"))]
+    let app = app.plugin(tauri_plugin_updater::Builder::new().build());
+    let app = app
         .setup(|app| {
             app.manage(Ready(AtomicBool::new(false)));
             app.manage(CloseWatch {
@@ -811,7 +820,8 @@ pub fn run() {
             export_docx,
             paddle_activate,
             paddle_check,
-            paddle_deactivate
+            paddle_deactivate,
+            is_mas_build
         ])
         .on_menu_event(|app, event| {
             // ⌘Q / 应用菜单「退出」不能用 PredefinedMenuItem::quit：它直接 app.exit()，
