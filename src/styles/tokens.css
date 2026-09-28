@@ -1,3 +1,19 @@
+/* Geist 家族品牌字体（2026-09-28 定案，audit 7B-5；SIL OFL 自托管可变字体） */
+@font-face {
+  font-family: "Geist";
+  src: url("../fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    ROCKTIER MARKDOWN — Design Tokens
    Nothing OS inspired — Monochrome + Dot Motif
@@ -54,11 +70,11 @@
      Georgia/Consolas 等）；② 中文显式兜底——Windows 上缺失 CJK 字体时
      WebView2 会回退宋体(SimSun)，小字号发虚，故各栈末尾补
      PingFang SC / 微软雅黑（macOS 侧为宋体，原设计零回归）。 */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", sans-serif;
   /* 等宽字体无 CJK 字形，monospace 之前显式补中文无衬线兜底 */
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, Menlo,
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Code", Consolas, Menlo,
     "JetBrains Mono", "Fira Code",
     "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", monospace;
   /* 衬线正文：macOS 仍 New York/Songti SC；Windows 落 Georgia 拉丁 +
