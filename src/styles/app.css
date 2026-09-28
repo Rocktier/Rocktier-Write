@@ -536,6 +536,16 @@ html.is-mac .toolbar {
   color: var(--text-primary);
 }
 
+/* 选中行尾品牌红点（audit 7C-1 示范位；7E Phase 2 铺开更多选中态） */
+.chapter-row.current::after {
+  content: "";
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-brand);
+}
+
 .chapter-set-goal {
   opacity: 0.35;
   transition: opacity var(--dur-fast);

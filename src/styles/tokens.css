@@ -49,6 +49,10 @@
   --accent: #ffffff;
    --on-accent: #0a0a0a;
   --accent-warn: #d98a00;
+  /* 品牌红语义强调位（audit 7C-1）：--accent 与 --text-primary 同色，
+     需要彩色信号时用 --accent-brand（红点/选中标记）。属语义补位，
+     不改变单色设计主基调。 */
+  --accent-brand: #ff4a3d;
   --brand-tile: #0a0a0a;
   --brand-ink: #ffffff;
  --accent-muted: rgba(255, 255, 255, 0.08);
@@ -158,6 +162,8 @@
   --accent: #000000;
    --on-accent: #ffffff;
   --accent-warn: #b06a00;
+  /* 浅色主题品牌红随 --red 惯例压深（audit 7C-1） */
+  --accent-brand: #e64537;
   --brand-tile: #0a0a0a;
   --brand-ink: #ffffff;
  --accent-muted: rgba(0, 0, 0, 0.05);
@@ -184,10 +190,14 @@
   --code-tag: #116329;
 }
 
-/* ── Reduced motion ────────────────────────────────────────────── */
+/* ── Reduced motion（家族统一方案，规范 §9）────────────────────────
+   0.01ms 而非 0 是为保留 transitionend/animationend 事件；
+   iteration-count 1 防止无限动画空转；scroll-behavior 一并归一。 */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
