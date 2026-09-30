@@ -3286,7 +3286,7 @@ dependencies = [
 
 [[package]]
 name = "rocktier-write"
-version = "1.1.9"
+version = "1.1.10"
 dependencies = [
  "base64 0.22.1",
  "docx-rs",
