@@ -62,7 +62,7 @@
         "title": "Rocktier Write",
         "width": 1100,
         "height": 760,
-        "minWidth": 720,
+        "minWidth": 640,
         "minHeight": 480,
         "center": true,
         "decorations": true,

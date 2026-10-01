@@ -31,7 +31,10 @@ const RECENT_KEY = "rocktier-write-recent";
 const VIEW_MODE_KEY = "rocktier-write-view-mode";
 const TYPEWRITER_KEY = "rocktier-write-typewriter";
 const RECENT_MAX = 5;
-const UNTITLED_KEY = "__untitled__";
+// Untitled documents have no path; recovery entries are keyed per-tab id so
+// three unsaved drafts no longer overwrite each other into a single slot.
+const UNTITLED_PREFIX = "__untitled__:";
+const untitledKey = (id: string) => `${UNTITLED_PREFIX}${id}`;
 
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 const MARKDOWN_EXTS = ["md", "markdown", "mdown", "mkd", "txt", "text"];
@@ -229,12 +232,15 @@ export default function App() {
 
       try {
         const entries = await invoke<Array<{ path: string; content: string; modified_ms: number }>>("list_recovery");
-        const namedDrafts = entries.filter((e) => e.path !== UNTITLED_KEY);
+        const namedDrafts = entries.filter((e) => !e.path.startsWith(UNTITLED_PREFIX));
+        const untitledDrafts = entries
+          .filter((e) => e.path.startsWith(UNTITLED_PREFIX))
+          .sort((a, b) => b.modified_ms - a.modified_ms);
         const draft = restored
           ? entries.find((e) => e.path === restored!.path)
-          : entries.find((e) => e.path === UNTITLED_KEY) ?? namedDrafts[0];
+          : untitledDrafts[0] ?? namedDrafts[0];
         if (draft && !cancelled) {
-          const untitled = draft.path === UNTITLED_KEY;
+          const untitled = draft.path.startsWith(UNTITLED_PREFIX);
           if (!untitled && restored && restored.path === draft.path && restored.content === draft.content) {
             await invoke("clear_recovery", { path: draft.path }).catch(() => {});
           } else {
@@ -323,7 +329,7 @@ export default function App() {
       }
       lastSavedRef.current.set(id, content);
       setSavedAtMap((m) => ({ ...m, [id]: Date.now() }));
-      invoke("clear_recovery", { path: finalPath ?? UNTITLED_KEY }).catch(() => {});
+      invoke("clear_recovery", { path: finalPath ?? untitledKey(id) }).catch(() => {});
       showToast(t("toast.saved"));
     } catch { showToast(t("toast.saveFailed")); }
   }, [activeDoc, showToast, rememberPath]);
@@ -592,7 +598,7 @@ export default function App() {
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     if (!activeDoc.modified) return;
     autoSaveTimerRef.current = setTimeout(() => {
-      const path = activePathRef.current ?? UNTITLED_KEY;
+      const path = activePathRef.current ?? untitledKey(activeIdRef.current);
       invoke("save_recovery", { path, content: activeContentRef.current })
         .then(() => setDraftAt(Date.now()))
         .catch(() => {});

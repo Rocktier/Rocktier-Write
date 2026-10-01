@@ -77,7 +77,9 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--border-strong);
+  /* border-strong 合成后仅 1.44:1(暗)/1.61:1(亮)，键盘用户看不见焦点。
+     accent-brand 在暗底 ≈4.6:1、亮底 ≈3.3:1，均过 WCAG 非文本 3:1。 */
+  outline: 2px solid var(--accent-brand, currentColor);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
