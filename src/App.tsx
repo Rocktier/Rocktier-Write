@@ -323,6 +323,8 @@ export default function App() {
         finalPath = p;
         setActiveDoc((d) => ({ ...d, path: p, modified: false }));
         rememberPath(p);
+        // P0-4：首次另存为后清掉未命名草稿恢复项，否则第二天会“复活”
+        invoke("clear_recovery", { path: untitledKey(id) }).catch(() => {});
       } else {
         await saveFile(path, payload);
         setActiveDoc((d) => (d.content === content ? { ...d, modified: false } : d));
@@ -345,6 +347,7 @@ export default function App() {
         lastSavedRef.current.set(id, content);
         setSavedAtMap((m) => ({ ...m, [id]: Date.now() }));
         rememberPath(p);
+        invoke("clear_recovery", { path: untitledKey(id) }).catch(() => {});
         showToast(t("toast.savedAs"));
       }
     } catch { showToast(t("toast.saveFailed")); }
@@ -605,6 +608,22 @@ export default function App() {
     }, 5000);
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
   }, [activeDoc.content, activeDoc.path, activeDoc.modified]);
+
+  // ── Flush draft on tab switch (P0-2) ──────────────────────────────
+  // 切走标签时立即把上一个文档的草稿落盘，避免 5s 防抖窗口内的输入在崩溃时丢失
+  const docsRef = useRef(docs);
+  useEffect(() => { docsRef.current = docs; }, [docs]);
+  const prevActiveIdRef = useRef(activeId);
+  useEffect(() => {
+    const prev = prevActiveIdRef.current;
+    if (prev !== activeId) {
+      const doc = docsRef.current.find((d) => d.id === prev);
+      if (doc && doc.modified) {
+        invoke("save_recovery", { path: doc.path ?? untitledKey(doc.id), content: doc.content }).catch(() => {});
+      }
+      prevActiveIdRef.current = activeId;
+    }
+  }, [activeId]);
 
   // ── External change detection ────────────────────────────────────
   const checkExternalChange = useCallback(async () => {

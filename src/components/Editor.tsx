@@ -4,7 +4,7 @@
  * Keeps v1 features: typewriter scroll, paragraph/sentence focus, Tab indent, list auto-continue.
  */
 import { memo, useEffect, useRef } from "react";
-import { Compartment, EditorState } from "@codemirror/state";
+import { Compartment, EditorState, Transaction } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
@@ -199,6 +199,8 @@ export const Editor = memo(function Editor({
     if (current !== content) {
       view.dispatch({
         changes: { from: 0, to: current.length, insert: content },
+        // 外部内容同步（切标签 / 打开文件）不进撤销栈，否则 ⌘Z 会把别的文档写回当前文档（P0-3）
+        annotations: Transaction.addToHistory.of(false),
       });
     }
   }, [content]);
