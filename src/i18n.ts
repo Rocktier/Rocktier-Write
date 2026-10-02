@@ -1,7 +1,8 @@
 // UI strings for Rocktier Write.
 // Default language: English (per family convention; do not follow system locale).
 // Supports 8 languages: en (default), zh, ja, ko, fr, de, es, pt.
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer   goal: "目标",
+} from "react";
 
 export type Lang = "en" | "zh" | "ja" | "ko" | "fr" | "de" | "es" | "pt";
 
