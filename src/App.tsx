@@ -375,9 +375,11 @@ export default function App() {
     if (viewMode !== "preview") setViewMode("preview");
     // give React a tick to paint preview, then open print dialog
     requestAnimationFrame(() => {
-      invoke("print_doc").catch(() => {});
+      // 打印失败（print_doc 起不来/被系统拒绝）至少要给个提示，不再静默吞错；
+      // 复用导出家族已有的 saveFailed 键（doExportDocx 同款），不新增硬编码英文。
+      invoke("print_doc").catch(() => showToast(t("toast.saveFailed")));
     });
-  }, [viewMode]);
+  }, [viewMode, showToast]);
 
   // ── Paste image ─────────────────────────────────────────────────
   // Editor reports paste event up; App owns the doc path + Rust invoke.
@@ -453,6 +455,14 @@ export default function App() {
 
   const switchDoc = useCallback((id: string) => { setActiveId(id); }, []);
 
+  // 查找替换依赖编辑器面板；预览模式下先切回编辑视图，否则 ⌘F / 菜单 / 工具栏
+  // 三条入口都会被渲染门（cmReady && findReplaceOpen && viewMode === "edit"）
+  // 静默吞掉。三条路径共用这一个回调，行为保持一致（对齐原工具栏按钮写法）。
+  const toggleFindReplace = useCallback(() => {
+    setViewMode("edit");
+    setFindReplaceOpen((v) => !v);
+  }, []);
+
   // ── Menu ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isTauri) return;
@@ -472,7 +482,7 @@ export default function App() {
           case "save-as": doSaveAs(); break;
           case "export-docx": doExportDocx(); break;
           case "export-pdf": doExportPdf(); break;
-          case "find": setFindReplaceOpen((v) => !v); break;
+          case "find": toggleFindReplace(); break;
           case "toggle-sidebar": setSidebar((v) => !v); break;
           case "toggle-theme": toggleTheme(); break;
           case "toggle-preview": setViewMode((m) => (m === "edit" ? "preview" : "edit")); break;
@@ -481,14 +491,14 @@ export default function App() {
       })
       .then((fn) => { if (disposed) fn(); else unlisten = fn; });
     return () => { disposed = true; unlisten?.(); };
-  }, [doNew, doOpen, doSave, doSaveAs, doExportDocx]);
+  }, [doNew, doOpen, doSave, doSaveAs, doExportDocx, toggleFindReplace]);
 
   const shortcuts = useMemo(() => ({
     onSave: doSave, onSaveAs: doSaveAs, onNew: doNew, onOpen: doOpen,
     onToggleSidebar: () => setSidebar((v) => !v),
-    onFindReplace: () => setFindReplaceOpen((v) => !v),
+    onFindReplace: toggleFindReplace,
     onExportPdf: doExportPdf,
-  }), [doSave, doSaveAs, doNew, doOpen, doExportPdf]);
+  }), [doSave, doSaveAs, doNew, doOpen, doExportPdf, toggleFindReplace]);
   useKeyboardShortcuts(shortcuts);
 
   // ── Open file externally (drop / drag / argv) ────────────────────
@@ -516,10 +526,14 @@ export default function App() {
           return;
         }
         await saveFileAs(applyEol(content, eol), p);
-        setActiveDoc((d) => ({ ...d, path: p, modified: false }));
+        // P0-4 收尾：与 doSave 对齐——对话框停留期间内容可能又变了，modified 只在
+        // content 仍与落盘一致时才清（照抄 doSave 命名分支的写法）；路径始终要跟上
+        // 新落盘位置。未命名草稿的恢复项也一并清掉，否则次日会“复活”。
+        setActiveDoc((d) => ({ ...d, path: p, modified: d.content === content ? false : d.modified }));
         lastSavedRef.current.set(id, content);
         setSavedAtMap((m) => ({ ...m, [id]: Date.now() }));
         rememberPath(p);
+        invoke("clear_recovery", { path: untitledKey(id) }).catch(() => {});
         showToast(t("toast.savedAs"));
       } catch {
         showToast(t("toast.saveFailed"));
@@ -555,7 +569,16 @@ export default function App() {
     const hasUnsaved = docs.some((d) => d.modified);
     if (hasUnsaved) if (!(await confirmDialog(t("confirm.discard")))) return;
     try {
-      if (DOCX_EXTS.includes(ext)) { showToast(t("toast.unsupportedType")); return; }
+      if (DOCX_EXTS.includes(ext)) {
+        // 拖放拿到的 File 没有磁盘路径（与 openPath 的路径入参不同），把字节交给
+        // 与导入按钮/openPath 同一个 docx→markdown 导入器（lib.rs import_docx_data）；
+        // 成功/失败提示与其保持一致（docxImported / cannotReadFile）。
+        const data = Array.from(new Uint8Array(await file.arrayBuffer()));
+        const md = await invoke<string>("import_docx_data", { data });
+        openContent(md, null, "\n", true);
+        showToast(t("toast.docxImported"));
+        return;
+      }
       const { content, eol } = normalizeEol(await file.text());
       openContent(content, null, eol);
       showToast(t("toast.fileOpened"));
@@ -706,11 +729,7 @@ export default function App() {
         onSaveAsWithFormat={doSaveAsWithFormat}
         modified={activeDoc.modified}
         onToggleTheme={toggleTheme}
-        onFindReplace={() => {
-          // Find needs the editor surface; if currently previewing, switch back first.
-          if (viewMode !== "edit") setViewMode("edit");
-          setFindReplaceOpen((v) => !v);
-        }}
+        onFindReplace={toggleFindReplace}
         focusMode={focusMode}
         onCycleFocus={cycleFocus}
         typewriter={typewriter}

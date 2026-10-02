@@ -12,6 +12,9 @@ node_modules/
 /src-tauri/gen/*
 !/src-tauri/gen/windows/
 
+# Local code-review tooling
+src/.code-review-graph/
+
 # IDE
 .vscode/
 .idea/

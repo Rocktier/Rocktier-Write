@@ -96,7 +96,10 @@ export const Toolbar = memo(function Toolbar({
   const goalProgress = wordGoal > 0 ? Math.min(100, Math.round((words / wordGoal) * 100)) : 0;
 
   return (
-    <header className="toolbar">
+    // data-tauri-drag-region：窗口标题栏为 Overlay+hiddenTitle，顶部条充当拖动区。
+    // Tauri v2 只认带该属性的命中元素自身，子元素（按钮/输入框/菜单）点击不受影响；
+    // 弹性的空白中间区 .toolbar-spacer 也带上属性，保证有可拖动的空白带。
+    <header className="toolbar" data-tauri-drag-region>
       <div className="toolbar-side">
         <button className="tbar-btn" onClick={onToggleSidebar} title={t("toolbar.toggleSidebar")} aria-label={t("toolbar.toggleSidebar")}>
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
@@ -152,7 +155,7 @@ export const Toolbar = memo(function Toolbar({
         </div>
       </div>
 
-      <div className="toolbar-spacer" />
+      <div className="toolbar-spacer" data-tauri-drag-region />
 
       {/* ── Output：出去 ── */}
       <div className="tgroup" role="group" aria-label={t("toolbar.groupOutput")}>

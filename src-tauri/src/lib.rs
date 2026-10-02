@@ -467,6 +467,19 @@ use docx_rs::*;
 #[cfg(desktop)]
 fn import_docx(path: String) -> Result<String, String> {
     let bytes = std::fs::read(&path).map_err(|e| format!("read: {e}"))?;
+    import_docx_from_bytes(bytes)
+}
+
+/// Same docx→markdown importer for in-memory bytes: files dropped onto the
+/// webview arrive as a DOM File without a filesystem path, so the frontend
+/// forwards the raw bytes here (App.tsx onDrop .docx branch).
+#[tauri::command]
+#[cfg(desktop)]
+fn import_docx_data(data: Vec<u8>) -> Result<String, String> {
+    import_docx_from_bytes(data)
+}
+
+fn import_docx_from_bytes(bytes: Vec<u8>) -> Result<String, String> {
     let doc = docx_rs::read_docx(&bytes).map_err(|e| format!("parse: {e}"))?;
 
     let mut md = String::new();
@@ -847,6 +860,7 @@ pub fn run() {
             save_paste_image,
             build_menu,
             import_docx,
+            import_docx_data,
             export_docx,
             paddle_activate,
             paddle_check,
