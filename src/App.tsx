@@ -800,7 +800,7 @@ export default function App() {
           </div>
           {viewMode === "preview" && (
             <div className="preview-pane-wrap">
-              <Preview content={activeDoc.content} />
+              <Preview content={activeDoc.content} filePath={activeDoc.path ?? undefined} />
             </div>
           )}
         </main>

@@ -72,7 +72,11 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://github.com https://objects.githubusercontent.com; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'self'"
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      },
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http: asset: http://asset.localhost; font-src 'self' data:; connect-src 'self' https://github.com https://objects.githubusercontent.com; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'self'"
     }
   },
   "plugins": {
