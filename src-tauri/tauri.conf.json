@@ -31,13 +31,7 @@
         "name": "Rocktier Write Document",
         "description": "Markdown / Text Document",
         "role": "Editor",
-        "mimeType": "text/markdown",
-        "exportedType": {
-          "identifier": "net.daringfireball.markdown",
-          "conformsTo": [
-            "public.text"
-          ]
-        }
+        "mimeType": "text/markdown"
       }
     ],
     "copyright": "Copyright 2026 Rocktier",
