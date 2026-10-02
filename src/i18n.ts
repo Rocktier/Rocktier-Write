@@ -226,7 +226,8 @@ const STRINGS = {
     "toast.pastedImage": "图片已粘贴",
     "toast.imageFailed": "保存图片失败",
     "toast.saveFirstForImage": "请先保存文档再粘贴图片",
-  },
+    goal: "目标",
+},
   ja: {
     "sidebar.close": "閉じる",
     "toolbar.toggleSidebar": "チャプター (\\)",
