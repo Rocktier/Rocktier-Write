@@ -851,6 +851,7 @@ function detectLang(): Lang {
 }
 
 let currentLang: Lang = detectLang();
+document.documentElement.lang = currentLang === "zh" ? "zh-CN" : currentLang;
 
 const listeners = new Set<() => void>();
 
@@ -866,6 +867,7 @@ export function setUiLang(lang: Lang): void {
     // storage unavailable
   }
   listeners.forEach((fn) => fn());
+  document.documentElement.lang = lang === "zh" ? "zh-CN" : lang;
 }
 
 /**
