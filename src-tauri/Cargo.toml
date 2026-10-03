@@ -14,7 +14,7 @@ tauri-build = { version = "2.0.0", features = [] }
 
 [dependencies]
 tauri-plugin-opener = "2"
-tauri = { version = "2.0", features = [] }
+tauri = { version = "2.0", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2.0"
 tauri-plugin-fs = "2.0"
 # Required by tauri::generate_context! (macro references ::serde_json directly)
