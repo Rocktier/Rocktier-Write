@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use serde::Serialize;
 use tauri_plugin_opener::OpenerExt;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{Emitter, Manager, WindowEvent};
 
 // 授权：试用状态与回执验签（单一来源 docs/rocktier/license.rs，规程 FAMILY-LICENSE.md）。
@@ -476,7 +476,15 @@ fn build_app_menu(app: &tauri::AppHandle, lang: &str) -> tauri::Result<()> {
             &PredefinedMenuItem::about(
                 app,
                 Some(tr(lang, "About Rocktier Write", "关于 Rocktier Write", "Rocktier Write について", "Rocktier Write 정보", "À propos de Rocktier Write", "Über Rocktier Write", "Acerca de Rocktier Write", "Sobre o Rocktier Write")),
-                None,
+                // 第三个参数不能是 None：Windows 后端只有匹配
+                // `PredefinedMenuItemType::About(Some(metadata))` 才调 show_about_dialog，
+                // None 落入 `_ => {}` —— 菜单项在，点击**完全无反应**。
+                // macOS 走 NSAboutPanel（忽略 metadata），此坑只在 Windows 暴露。
+                Some(AboutMetadata {
+                    version: Some(env!("CARGO_PKG_VERSION").to_string()),
+                    copyright: Some("Copyright 2026 Rocktier".to_string()),
+                    ..Default::default()
+                }),
             )?,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::hide(app, None)?,
