@@ -546,6 +546,13 @@ export default function App() {
           case "license": openLicense(); break;
           case "toggle-preview": setViewMode((m) => (m === "edit" ? "preview" : "edit")); break;
           case "toggle-frontmatter": setFmOpen((v) => !v); break;
+          case "website":
+            void invoke("open_url", { url: "https://rocktier.com/" }).catch(() => {});
+            break;
+          case "feedback":
+            // 此前菜单项被创建但前端无分支 → 点了完全无反应（家族审查发现）。
+            void invoke("open_url", { url: "mailto:hello@rocktier.com?subject=Rocktier%20Write%20Feedback" }).catch(() => {});
+            break;
         }
       })
       .then((fn) => { if (disposed) fn(); else unlisten = fn; });
