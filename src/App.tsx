@@ -18,7 +18,7 @@ import { Preview } from "./components/Preview";
 import { FrontmatterPanel } from "./components/FrontmatterPanel";
 import { LicenseDialog } from "./components/LicenseDialog";
 import { licenseStatus, onLicenseExpired, isLicenseExpiredError, type LicenseInfo } from "./services/license";
-import { useTheme, toggleTheme } from "./hooks/useTheme";
+import { useTheme } from "./hooks/useTheme";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
   openFile, saveFile, saveFileAs, confirmDialog, normalizeEol, applyEol, type Eol,
@@ -57,7 +57,7 @@ const newDocId = (): string =>
 const BOOT_DOC_ID = newDocId();
 
 export default function App() {
-  useTheme();
+  const { mode: themeMode, cycleTheme } = useTheme();
   const lang = useUiLang();
 
   // ── Multi-doc state ──────────────────────────────────────────────
@@ -542,7 +542,7 @@ export default function App() {
           case "export-pdf": doExportPdf(); break;
           case "find": toggleFindReplace(); break;
           case "toggle-sidebar": setSidebar((v) => !v); break;
-          case "toggle-theme": toggleTheme(); break;
+          case "toggle-theme": cycleTheme(); break;
           case "license": openLicense(); break;
           case "toggle-preview": setViewMode((m) => (m === "edit" ? "preview" : "edit")); break;
           case "toggle-frontmatter": setFmOpen((v) => !v); break;
@@ -795,7 +795,8 @@ export default function App() {
         onSave={doSave}
         onSaveAsWithFormat={doSaveAsWithFormat}
         modified={activeDoc.modified}
-        onToggleTheme={toggleTheme}
+        themeMode={themeMode}
+        onToggleTheme={cycleTheme}
         onFindReplace={toggleFindReplace}
         focusMode={focusMode}
         onCycleFocus={cycleFocus}

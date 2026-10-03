@@ -21,6 +21,7 @@ interface Props {
   onSaveAsWithFormat?: () => void;
   onImportDocx: () => void;
   modified: boolean;
+  themeMode: "auto" | "light" | "dark";
   onToggleTheme: () => void;
   onFindReplace: () => void;
   hasFrontmatter: boolean;
@@ -55,6 +56,7 @@ export const Toolbar = memo(function Toolbar({
   onSaveAsWithFormat,
   onImportDocx,
   modified,
+  themeMode,
   onToggleTheme,
   onFindReplace,
   hasFrontmatter,
@@ -260,21 +262,30 @@ export const Toolbar = memo(function Toolbar({
           </button>
         )}
 
-        <button className="tbar-btn ghost-ic theme-btn" onClick={onToggleTheme} title={t("toolbar.theme")} aria-label={t("toolbar.theme")}>
-          <svg className="icon-sun" width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
-            <circle cx="7" cy="7" r="3" />
-            <line x1="7" y1="1" x2="7" y2="2.5" />
-            <line x1="7" y1="11.5" x2="7" y2="13" />
-            <line x1="1" y1="7" x2="2.5" y2="7" />
-            <line x1="11.5" y1="7" x2="13" y2="7" />
-            <line x1="2.8" y1="2.8" x2="3.9" y2="3.9" />
-            <line x1="10.1" y1="10.1" x2="11.2" y2="11.2" />
-            <line x1="2.8" y1="11.2" x2="3.9" y2="10.1" />
-            <line x1="10.1" y1="3.9" x2="11.2" y2="2.8" />
-          </svg>
-          <svg className="icon-moon" width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
-            <path d="M11 8.5A5 5 0 0 1 5.5 3a4.98 4.98 0 0 1 5.5 5.5z" />
-          </svg>
+        {/* 家族唯一主题按钮：.icon-btn（28×28 + 40px 命中区）。
+            三态 auto → light → dark，data-mode 驱动角标，title/aria-label 说明当前档。 */}
+        <button
+          className="icon-btn"
+          data-mode={themeMode}
+          onClick={onToggleTheme}
+          title={`${t("toolbar.theme")} \u00b7 ${t(`theme.mode.${themeMode}`)}`}
+          aria-label={`${t("toolbar.theme")}: ${t(`theme.mode.${themeMode}`)}`}
+        >
+          {themeMode === "auto" ? (
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="2.5" y="4" width="19" height="13" rx="2" />
+              <path d="M8 20.5h8M12 17v3.5" />
+            </svg>
+          ) : themeMode === "dark" ? (
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z" />
+            </svg>
+          )}
         </button>
       </div>
     </header>

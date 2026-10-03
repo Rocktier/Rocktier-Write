@@ -1,60 +1,70 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-type Theme = "dark" | "light" | "system";
+/** 三态：auto 跟随系统 → light → dark → auto（家族 §6.5 唯一状态机）。 */
+export type ThemeMode = "auto" | "light" | "dark";
+type Resolved = "light" | "dark";
 
 const THEME_KEY = "rocktier-write-theme";
-const THEMES: readonly Theme[] = ["dark", "light", "system"];
+const CYCLE: readonly ThemeMode[] = ["auto", "light", "dark"];
 
-function readStoredTheme(): Theme {
-  if (typeof window === "undefined") return "system";
+/** 三态引入前这个键只存 dark/light —— 原样读取，老用户偏好不丢。 */
+function readMode(): ThemeMode {
+  if (typeof window === "undefined") return "auto";
   try {
-    const stored = localStorage.getItem(THEME_KEY) as Theme | null;
-    return stored && THEMES.includes(stored) ? stored : "system";
+    const stored = localStorage.getItem(THEME_KEY) as ThemeMode | null;
+    if (stored === "auto" || stored === "light" || stored === "dark") return stored;
   } catch {
     // 隐私模式 / 存储被禁用：偏好读取失败不能把整个 App 渲染打挂
-    return "system";
   }
+  // 从没手动选过：跟随系统（家族基线）
+  return "auto";
 }
 
-function getSystemTheme(): "dark" | "light" {
+function systemTheme(): Resolved {
   if (typeof window === "undefined") return "dark";
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
 
-function resolveTheme(theme: Theme): "dark" | "light" {
-  return theme === "system" ? getSystemTheme() : theme;
+/** auto 落成实际生效值 —— data-theme 只接受 light/dark。 */
+function resolve(mode: ThemeMode): Resolved {
+  return mode === "auto" ? systemTheme() : mode;
 }
 
-export function useTheme() {
-  useEffect(() => {
-    applyTheme(readStoredTheme());
-
-    // Listen for system theme changes
-    const mq = window.matchMedia("(prefers-color-scheme: light)");
-    const handler = () => {
-      if (readStoredTheme() === "system") {
-        applyResolved(getSystemTheme());
-      }
-    };
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-}
-
-function applyTheme(theme: Theme) {
-  applyResolved(resolveTheme(theme));
-}
-
-function applyResolved(resolved: "dark" | "light") {
+function applyResolved(resolved: Resolved) {
   document.documentElement.setAttribute("data-theme", resolved);
 }
 
-export function toggleTheme() {
-  const next: Theme = resolveTheme(readStoredTheme()) === "dark" ? "light" : "dark";
+function persist(mode: ThemeMode) {
   try {
-    localStorage.setItem(THEME_KEY, next);
+    localStorage.setItem(THEME_KEY, mode);
   } catch {
-    // ignore — theme still applies for this session
+    // ignore —— 主题本次会话仍然生效
   }
-  applyResolved(next);
+}
+
+export function useTheme() {
+  const [mode, setMode] = useState<ThemeMode>(readMode);
+
+  useEffect(() => {
+    applyResolved(resolve(mode));
+  }, [mode]);
+
+  // auto 态下系统外观变了要跟着变；light/dark 是明确选择，不动。
+  useEffect(() => {
+    if (mode !== "auto") return;
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const onChange = () => applyResolved(systemTheme());
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [mode]);
+
+  const cycleTheme = useCallback(() => {
+    setMode((prev) => {
+      const next = CYCLE[(CYCLE.indexOf(prev) + 1) % CYCLE.length];
+      persist(next);
+      return next;
+    });
+  }, []);
+
+  return { mode, cycleTheme };
 }
