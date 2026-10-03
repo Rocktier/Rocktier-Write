@@ -16,7 +16,7 @@ Every great work begins with a single sentence. Rocktier Write gives you the spa
 
 ## How to Use This Document
 
-Write in **Markdown** on the left. Your headings become chapters — navigate them from the sidebar. Type \`# \` for a chapter, \`## \` for a section.
+You're in a single focused pane — no preview, no split. Your headings become chapters — navigate them from the sidebar. Type \`# \` for a chapter, \`## \` for a section.
 
 When your draft is ready, export to **DOCX** — a manuscript-formatted file with:
 
