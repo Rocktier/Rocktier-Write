@@ -9,7 +9,8 @@
          （文档打开/保存/另存、DOCX 导入导出全部走此链路） -->
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
-    <!-- Paddle 授权校验（license.api.paddle.com）所需出站连接 -->
+    <!-- 激活时一次性联网换回执（rocktier.com/api/activate，此后离线验签）；
+         沙盒里 WKWebView 的出站连接也记在宿主应用头上，故必须保留 -->
     <key>com.apple.security.network.client</key>
     <true/>
 </dict>

@@ -132,6 +132,16 @@ jobs:
       # 必须与 Partner Center 预留身份一致；Store 侧重新签名，无需 pfx。
       # md 文件关联自动从 tauri.conf.json 的 bundle.fileAssociations 折叠进来。
       - name: Build MSIX (Microsoft Store)
+        # ROCKTIER_CHANNEL=store turns off the app's own trial and activation
+        # entirely: the Store sold this copy and the Store knows it. Leaving our
+        # paywall in would pull in Microsoft's third-party-purchase rules (10.8.2)
+        # and its disclosure requirements (10.8.4) for no reason.
+        #
+        # The tauri-action step above builds the MSI with no such variable, so it
+        # stays on the default `direct` channel. rustc records option_env! lookups
+        # in its dep-info, so changing this variable is enough to force a rebuild.
+        env:
+          ROCKTIER_CHANNEL: store
         run: npm run tauri:windows:build
 
       - name: Upload MSIX artifact (branch)

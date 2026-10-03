@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { t, useUiLang, getUiLang, cycleUiLang } from "../i18n";
+import type { LicenseInfo } from "../services/license";
 
 type FocusMode = "off" | "paragraph" | "sentence";
 
@@ -17,6 +18,9 @@ interface Props {
   draftAt: number | null;
   /** 当前标签是否有未保存修改 */
   modified: boolean;
+  /** 许可状态：显示试用剩余天数，并作为进入"许可与激活"的入口。 */
+  license?: LicenseInfo | null;
+  onLicenseClick?: () => void;
 }
 
 export const StatusBar = memo(function StatusBar({
@@ -30,6 +34,8 @@ export const StatusBar = memo(function StatusBar({
   savedAt,
   draftAt,
   modified,
+  license,
+  onLicenseClick,
 }: Props) {
   useUiLang();
 
@@ -43,6 +49,11 @@ export const StatusBar = memo(function StatusBar({
   };
   const saveState: "saved" | "draft" | "unsaved" | null =
     !modified && savedAt ? "saved" : modified && draftAt ? "draft" : modified ? "unsaved" : null;
+
+  /* 只在直链版且尚未买断时提示 —— 商店版由商店收款，这里再提一句"试用/购买"既多余，
+     又容易在审核眼里变成"引导外部购买"。已激活时同样不占状态栏（入口在帮助菜单）。 */
+  const showLicenseChip =
+    !!license && license.channel === "direct" && license.status !== "licensed";
 
   return (
     <footer className="status-bar">
@@ -80,6 +91,18 @@ export const StatusBar = memo(function StatusBar({
         </>
       )}
       <div className="status-right">
+        {showLicenseChip && (
+          <button
+            type="button"
+            className={`status-license${license.status === "expired" ? " expired" : ""}`}
+            onClick={onLicenseClick}
+            title={license.status === "expired" ? t("license.expired") : t("license.trialLeft", { days: license.daysLeft })}
+          >
+            {license.status === "expired"
+              ? t("license.expiredChip")
+              : t("license.trialChip", { days: license.daysLeft })}
+          </button>
+        )}
         <button
           type="button"
           className={`status-focus-btn ${focusMode !== "off" ? "active" : ""}`}
