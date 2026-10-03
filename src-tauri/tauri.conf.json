@@ -39,6 +39,19 @@
     "shortDescription": "Fast, focused long-form writing",
     "longDescription": "Rocktier Write — A fast, private, distraction-free writing app for long-form authors. Offline-first, pure Markdown, academic DOCX export. Part of the Rocktier family.",
     "windows": {
+      "allowDowngrades": true,
+      "digestAlgorithm": "sha256",
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "English"
+        ],
+        "displayLanguageSelector": false
+      },
       "wix": {
         "language": "en-US",
         "upgradeCode": "09ABB9EB-24D3-41C0-992E-C8935E2A6AF5"
