@@ -5,7 +5,10 @@ import { useEffect, useReducer } from "react";
 
 export type Lang = "en" | "zh" | "ja" | "ko" | "fr" | "de" | "es" | "pt";
 
-const STORE_KEY = "rocktier-write-lang";
+/* 2026-10-04 键改名（"rocktier-write-lang" → "rocktier.lang"），读取处回落旧键。
+ * 语言是用户感知最强的偏好，重置一次就等于「中文用户变英文界面」。 */
+const STORE_KEY = "rocktier.lang";
+const STORE_KEY_LEGACY = "rocktier-write-lang";
 
 /** ⌘ on macOS, Ctrl+ elsewhere — shortcut hints are written with ⌘ in the dictionary. */
 const MOD_KEY =
@@ -277,7 +280,9 @@ const STRINGS = {
     "license.offline": "连不上 rocktier.com。激活需要一次联网，之后便不再联网。",
     "license.whereToFind": "付款后页面上会显示激活码，购买确认邮件里也有一份。",
     "license.privacyNote": "激活会把激活码发送到 rocktier.com 一次，并把签名回执保存在本机。除此之外不传输任何内容。",
-    goal: "目标",
+    /* 2026-10-04 删：en 块里多出一个 zh 块没有的键 goal，且 t("goal") 零引用。
+     * 属字典垃圾 —— 补译一份反而是给死键续命。功能开关用的是
+     * "toolbar.setGoal" / "dashboard.ofGoal"，与它无关。 */
 },
   ja: {
     "sidebar.close": "閉じる",
@@ -1048,7 +1053,7 @@ export type UiKey = keyof typeof STRINGS.en;
 
 function detectLang(): Lang {
   try {
-    const saved = localStorage.getItem(STORE_KEY);
+    const saved = localStorage.getItem(STORE_KEY) ?? localStorage.getItem(STORE_KEY_LEGACY);
     if (saved) {
       // Validate it's one of our 8 supported langs
       if (UI_LANGS.some((l) => l.id === saved)) return saved as Lang;

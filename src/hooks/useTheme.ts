@@ -4,14 +4,17 @@ import { useCallback, useEffect, useState } from "react";
 export type ThemeMode = "auto" | "light" | "dark";
 type Resolved = "light" | "dark";
 
-const THEME_KEY = "rocktier-write-theme";
+/* 2026-10-04 键改名（"rocktier-write-theme" → "rocktier.theme"），理由同 i18n.ts。 */
+const THEME_KEY = "rocktier.theme";
+const THEME_KEY_LEGACY = "rocktier-write-theme";
 const CYCLE: readonly ThemeMode[] = ["auto", "light", "dark"];
 
 /** 三态引入前这个键只存 dark/light —— 原样读取，老用户偏好不丢。 */
 function readMode(): ThemeMode {
   if (typeof window === "undefined") return "auto";
   try {
-    const stored = localStorage.getItem(THEME_KEY) as ThemeMode | null;
+    const stored = (localStorage.getItem(THEME_KEY) ??
+      localStorage.getItem(THEME_KEY_LEGACY)) as ThemeMode | null;
     if (stored === "auto" || stored === "light" || stored === "dark") return stored;
   } catch {
     // 隐私模式 / 存储被禁用：偏好读取失败不能把整个 App 渲染打挂

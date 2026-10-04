@@ -28,10 +28,16 @@ import { WELCOME_DOCUMENT, type MarkdownDocument } from "./types/index";
 import { t, useUiLang } from "./i18n";
 import { extractFrontmatter } from "./services/markdown";
 
-const LAST_PATH_KEY = "rocktier-write-last-path";
-const RECENT_KEY = "rocktier-write-recent";
-const VIEW_MODE_KEY = "rocktier-write-view-mode";
-const TYPEWRITER_KEY = "rocktier-write-typewriter";
+/* 2026-10-04 键改名：家族命名空间统一用「.」，此前 Write 用的是 "rocktier-write-…"（连字符）。
+ * 改名只为跨产品一致，不该顺手清掉用户已选的偏好 —— 所以读取处仍回落旧键。旧键不删。 */
+// 只写键（仅 setItem/removeItem，无读取点）—— 改名无需迁移数据，故不留 legacy 常量。
+const LAST_PATH_KEY = "rocktier.last-path";
+const RECENT_KEY = "rocktier.write.recent";
+const RECENT_KEY_LEGACY = "rocktier-write-recent";
+const VIEW_MODE_KEY = "rocktier.write.view-mode";
+const VIEW_MODE_KEY_LEGACY = "rocktier-write-view-mode";
+const TYPEWRITER_KEY = "rocktier.write.typewriter";
+const TYPEWRITER_KEY_LEGACY = "rocktier-write-typewriter";
 const RECENT_MAX = 5;
 // Untitled documents have no path; recovery entries are keyed per-tab id so
 // three unsaved drafts no longer overwrite each other into a single slot.
@@ -76,7 +82,7 @@ export default function App() {
   const [cmReady, setCmReady] = useState(false);
   // v1.1.3: view/edit toggle, frontmatter panel, recent menu
   const [viewMode, setViewMode] = useState<"edit" | "preview">(() => {
-    const saved = localStorage.getItem(VIEW_MODE_KEY);
+    const saved = localStorage.getItem(VIEW_MODE_KEY) ?? localStorage.getItem(VIEW_MODE_KEY_LEGACY);
     return saved === "preview" ? "preview" : "edit";
   });
   // Persist view mode preference across sessions
@@ -84,12 +90,14 @@ export default function App() {
   const [fmOpen, setFmOpen] = useState(false);
   const [recentItems, setRecentItems] = useState<string[]>([]);
   const refreshRecent = useCallback(() => {
-    try { setRecentItems(JSON.parse(localStorage.getItem(RECENT_KEY) || "[]")); } catch { /* */ }
+    try {
+      setRecentItems(JSON.parse((localStorage.getItem(RECENT_KEY) ?? localStorage.getItem(RECENT_KEY_LEGACY)) || "[]"));
+    } catch { /* */ }
   }, []);
   useEffect(() => { refreshRecent(); }, [refreshRecent]);
 
   // Typewriter scrolling（光标锁视口 40%）：独立于 Focus Mode 的开关（W-P1-02）
-  const [typewriter, setTypewriter] = useState(() => localStorage.getItem(TYPEWRITER_KEY) === "1");
+  const [typewriter, setTypewriter] = useState(() => (localStorage.getItem(TYPEWRITER_KEY) ?? localStorage.getItem(TYPEWRITER_KEY_LEGACY)) === "1");
   // Persist typewriter preference across sessions
   useEffect(() => { localStorage.setItem(TYPEWRITER_KEY, typewriter ? "1" : "0"); }, [typewriter]);
 
@@ -220,7 +228,9 @@ export default function App() {
     try {
       if (path) {
         localStorage.setItem(LAST_PATH_KEY, path);
-        const list: string[] = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+        const list: string[] = JSON.parse(
+            (localStorage.getItem(RECENT_KEY) ?? localStorage.getItem(RECENT_KEY_LEGACY)) || "[]",
+          );
         const next = [path, ...list.filter((p) => p !== path)].slice(0, RECENT_MAX);
         localStorage.setItem(RECENT_KEY, JSON.stringify(next));
       } else localStorage.removeItem(LAST_PATH_KEY);
