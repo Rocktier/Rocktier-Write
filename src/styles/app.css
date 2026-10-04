@@ -763,6 +763,7 @@ html.is-mac .toolbar {
    ─────────────────────────────────────────────────────────────────── */
 
 .editor-pane-wrap,
+.rich-pane-wrap,
 .preview-pane-wrap {
   flex: 1;
   display: flex;
@@ -772,8 +773,213 @@ html.is-mac .toolbar {
                     which stretches CM's scroller to full doc height → never scrolls */
 }
 
-.editor-pane-wrap.hidden {
+/* 富文本与源码编辑器都常驻挂载，只切display —— 条件渲染会把编辑器重建，
+   用户的撤销栈与滚动位置随之消失（切回来发现 Ctrl+Z 没了）。 */
+.editor-pane-wrap.hidden,
+.rich-pane-wrap.hidden {
   display: none;
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   Rich text mode (2026-10-04, Tiptap)
+   ─────────────────────────────────────────────────────────────────── */
+
+/* 格式条：常驻在编辑区正上方。按钮规格与家族 .tbar-btn / .icon-btn 对齐
+   （28px 命中区、currentColor 描边、hover 显底），三处视觉一致。 */
+.rt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  /* 窄面板时横向滚动而不是换行：换行会把正文往下顶，编辑时视线一直在跳。
+     overflow-x 让它可横向滚，但隐藏滚动条以免多一条视觉噪音。 */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.rt-toolbar::-webkit-scrollbar { height: 0; }
+
+.rt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--dur-hover) var(--ease),
+    border-color var(--dur-hover) var(--ease), color var(--dur-hover) var(--ease);
+}
+.rt-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+/* active = 当前选区已是该格式（不只是「点过」）。用 --bg-card 而非品牌色：
+   格式状态不是「危险/品牌」语义，中性底更贴家族规范（与 --red 只留给状态同理）。 */
+.rt-btn.active {
+  background: var(--bg-card-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+.rt-btn:active { background: var(--bg-card); }
+
+.rich-editor {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px 40vh; /* 底部留白：滚到文末时最后一行能到视口中部，
+                              否则光标贴着下边缘 —— 与源码视图同款体验 */
+  outline: none;
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  line-height: 1.7;
+  color: var(--text-primary);
+  /* 宽度上限：与 Preview 的正文栏同宽，两视图切换时行不会突然重排 */
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ProseMirror 自己会给 contenteditable 加 outline / white-space，
+   两处都要覆盖，否则聚焦时有一圈蓝边，且长行不换行。 */
+.rich-editor .ProseMirror {
+  outline: none;
+  min-height: 100%;
+}
+
+.rich-editor .ProseMirror p {
+  margin: 0 0 0.85em;
+}
+
+.rich-editor .ProseMirror h1,
+.rich-editor .ProseMirror h2,
+.rich-editor .ProseMirror h3,
+.rich-editor .ProseMirror h4 {
+  margin: 1.4em 0 0.5em;
+  line-height: 1.25;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.rich-editor .ProseMirror h1 { font-size: 1.9em; }
+.rich-editor .ProseMirror h2 { font-size: 1.5em; }
+.rich-editor .ProseMirror h3 { font-size: 1.22em; }
+.rich-editor .ProseMirror h4 { font-size: 1.05em; }
+
+.rich-editor .ProseMirror ul,
+.rich-editor .ProseMirror ol {
+  margin: 0 0 0.85em;
+  padding-left: 1.6em;
+}
+
+.rich-editor .ProseMirror li p {
+  margin: 0 0 0.25em;
+}
+
+.rich-editor .ProseMirror blockquote {
+  margin: 0 0 0.85em;
+  padding-left: 1em;
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.rich-editor .ProseMirror code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--bg-inset);
+  border-radius: var(--radius-xs);
+  padding: 0.1em 0.32em;
+}
+
+.rich-editor .ProseMirror pre {
+  margin: 0 0 0.85em;
+  padding: 12px 14px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+
+.rich-editor .ProseMirror pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.9em;
+}
+
+.rich-editor .ProseMirror hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.6em 0;
+}
+
+.rich-editor .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.rich-editor .ProseMirror a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rich-editor .ProseMirror table {
+  border-collapse: collapse;
+  margin: 0 0 0.85em;
+  width: 100%;
+  font-size: var(--fs-sm);
+}
+
+.rich-editor .ProseMirror th,
+.rich-editor .ProseMirror td {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.rich-editor .ProseMirror th {
+  background: var(--bg-card);
+  font-weight: 600;
+}
+
+.rich-editor .ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.2em;
+}
+
+.rich-editor .ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.rich-editor .ProseMirror ul[data-type="taskList"] li > label {
+  flex: none;
+  margin-top: 0.35em;
+  user-select: none;
+}
+
+.rich-editor .ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 空文档占位符：Tiptap 的 Placeholder 扩展用这个属性，
+   配合 :empty 选择器 —— 文档只有一个空段落时正好命中。 */
+.rich-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--text-tertiary);
 }
 
 /* ───────────────────────────────────────────────────────────────────

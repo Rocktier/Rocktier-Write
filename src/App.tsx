@@ -15,6 +15,8 @@ import { FindReplace } from "./components/FindReplace";
 import { StatusBar } from "./components/StatusBar";
 import { TabBar, type TabDoc } from "./components/TabBar";
 import { Preview } from "./components/Preview";
+import { RichTextEditor } from "./components/RichTextEditor";
+import type { ViewMode } from "./components/ViewSwitch";
 import { FrontmatterPanel } from "./components/FrontmatterPanel";
 import { LicenseDialog } from "./components/LicenseDialog";
 import { licenseStatus, onLicenseExpired, isLicenseExpiredError, type LicenseInfo } from "./services/license";
@@ -80,10 +82,21 @@ export default function App() {
   const [wordGoal, setWordGoal] = useState(0);
   const [sessionStart] = useState(() => Date.now());
   const [cmReady, setCmReady] = useState(false);
-  // v1.1.3: view/edit toggle, frontmatter panel, recent menu
-  const [viewMode, setViewMode] = useState<"edit" | "preview">(() => {
+  /* 视图三态：rich（Tiptap 富文本）/ source（CodeMirror 源码）/ preview（预览）。
+   *
+   * 默认 **rich**（所见即所得）：这是富文本改造的目的，也是绝大多数新用户唯一会用
+   * 的视图 —— 把不熟 markdown 的人挡在语法外面，比让他们先学语法再写更合算。
+   * 源码与预览都在，熟手随时可切，所以默认给谁都不封死路。
+   * ⚠️ 这一行改回 "source" 只需改这里，但请连带改台账里的默认视图结论。
+   *
+   * 兼容老用户：旧键只存过 "edit"（源码）/ "preview"，映射到新枚举即可 ——
+   * 不因为新增一个视图就把老用户的源码视图偏好重置掉。 */
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem(VIEW_MODE_KEY) ?? localStorage.getItem(VIEW_MODE_KEY_LEGACY);
-    return saved === "preview" ? "preview" : "edit";
+    if (saved === "preview") return "preview";
+    if (saved === "source" || saved === "edit") return "source";
+    if (saved === "rich") return "rich";
+    return "rich"; // 从未选过 → 富文本
   });
   // Persist view mode preference across sessions
   useEffect(() => { localStorage.setItem(VIEW_MODE_KEY, viewMode); }, [viewMode]);
@@ -523,11 +536,11 @@ export default function App() {
 
   const switchDoc = useCallback((id: string) => { setActiveId(id); }, []);
 
-  // 查找替换依赖编辑器面板；预览模式下先切回编辑视图，否则 ⌘F / 菜单 / 工具栏
-  // 三条入口都会被渲染门（cmReady && findReplaceOpen && viewMode === "edit"）
-  // 静默吞掉。三条路径共用这一个回调，行为保持一致（对齐原工具栏按钮写法）。
+  /* 查找替换依赖 CodeMirror 面板；不在源码视图时先切回去，否则 ⌘F / 菜单 / 工具栏
+     三条入口都会被渲染门（cmReady && findReplaceOpen && viewMode === "source"）
+     静默吞掉。三条路径共用这一个回调，行为保持一致（对齐原工具栏按钮写法）。 */
   const toggleFindReplace = useCallback(() => {
-    setViewMode("edit");
+    setViewMode("source");
     setFindReplaceOpen((v) => !v);
   }, []);
 
@@ -554,7 +567,10 @@ export default function App() {
           case "toggle-sidebar": setSidebar((v) => !v); break;
           case "toggle-theme": cycleTheme(); break;
           case "license": openLicense(); break;
-          case "toggle-preview": setViewMode((m) => (m === "edit" ? "preview" : "edit")); break;
+          /* 菜单「切换预览」在三态下：不在预览就去预览，在预览就回**富文本**。
+           * 原来二态时是 edit↔preview 互换；现在「另一个编辑视图」是 rich ——
+           * 从预览回源码视图不符合直觉（用户按的是「预览」，不是「源码」）。 */
+          case "toggle-preview": setViewMode((m) => (m === "preview" ? "rich" : "preview")); break;
           case "toggle-frontmatter": setFmOpen((v) => !v); break;
           case "website":
             void invoke("open_url", { url: "https://rocktier.com/" }).catch(() => {});
@@ -872,13 +888,15 @@ export default function App() {
               const pos = cm.state.doc.line(line).from;
               cm.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
             };
-            if (viewMode !== "edit") {
+            // 必须切到源码视图：跳转依赖 CodeMirror 的 dispatch 与真实行号，
+            // 富文本视图（Tiptap）没有这套 API，强行跳会静默无反应。
+            if (viewMode !== "source") {
               // The editor surface is display:none while previewing; CM can't
               // scroll it. Switch back first, then jump after layout settles.
               // rAF alone is not enough: it is suspended for occluded/minimized
               // windows, which would silently drop the jump. Timer fallback,
               // first one to run wins via `done`.
-              setViewMode("edit");
+              setViewMode("source");
               let done = false;
               const run = () => {
                 if (done) return;
@@ -895,10 +913,16 @@ export default function App() {
         </aside>
         <main className="editor-container">
           <ViewSwitch viewMode={viewMode} onChange={setViewMode} />
-          {cmReady && findReplaceOpen && viewMode === "edit" && (
+          {/* 查找替换只在源码视图可用：CodeMirror 侧才有真实的选区与搜索状态，
+              富文本视图里再挂一份 FindReplace 会与 Tiptap 的快捷键抢 Ctrl+F。 */}
+          {cmReady && findReplaceOpen && viewMode === "source" && (
             <FindReplace onClose={() => setFindReplaceOpen(false)} />
           )}
-          <div className={`editor-pane-wrap ${viewMode === "preview" ? "hidden" : ""}`}>
+
+          {/* 三个视图都挂载、用 CSS 显隐而不是条件渲染：切换时不重新挂载编辑器，
+              撤销栈与滚动位置得以保留 —— 条件渲染每次切换都会把编辑器重建，
+              用户切回来发现 Ctrl+Z 没了。（预览没有这个问题，条件渲染即可。） */}
+          <div className={`editor-pane-wrap ${viewMode !== "source" ? "hidden" : ""}`}>
             <Editor
               content={activeDoc.content}
               onChange={(content) => {
@@ -914,6 +938,20 @@ export default function App() {
               placeholder={t("editor.placeholder")}
             />
           </div>
+
+          <div className={`rich-pane-wrap ${viewMode !== "rich" ? "hidden" : ""}`}>
+            <RichTextEditor
+              content={activeDoc.content}
+              onChange={(content) => {
+                lastTypeRef.current = Date.now();
+                setActiveDoc((d) => ({ ...d, content, modified: true }));
+              }}
+              onPasteImage={onPasteImage}
+              onCursorMove={onCursorMove}
+              placeholder={t("editor.placeholder")}
+            />
+          </div>
+
           {viewMode === "preview" && (
             <div className="preview-pane-wrap">
               <Preview content={activeDoc.content} filePath={activeDoc.path ?? undefined} />

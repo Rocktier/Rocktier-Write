@@ -28,6 +28,26 @@ export const UI_LANGS: ReadonlyArray<{ id: Lang; label: string }> = [
 
 const STRINGS = {
   en: {
+
+    // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
+    // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
+    // 本地存的界面语言设置失效。
+    "rt.toolbarLabel": "Formatting",
+    "rt.addLink": "Add link…",
+    "rt.removeLinkConfirm": "Remove this link?",
+    "toolbar.richView": "Rich",
+    "toolbar.sourceView": "Source",
+    "rt.bold": "Bold",
+    "rt.italic": "Italic",
+    "rt.strike": "Strikethrough",
+    "rt.h1": "Heading 1",
+    "rt.h2": "Heading 2",
+    "rt.bulletList": "Bulleted list",
+    "rt.orderedList": "Numbered list",
+    "rt.taskList": "Task list",
+    "rt.blockquote": "Quote",
+    "rt.codeBlock": "Code block",
+    "rt.link": "Link",
     "sidebar.close": "Close",
     "toolbar.toggleSidebar": "Chapters (\\)",
     "toolbar.info": "Document info",
@@ -155,6 +175,26 @@ const STRINGS = {
     "license.privacyNote": "Activating sends the code to rocktier.com once and stores the signed reply locally. Nothing else is sent.",
   },
   zh: {
+
+    // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
+    // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
+    // 本地存的界面语言设置失效。
+    "rt.toolbarLabel": "格式",
+    "rt.removeLinkConfirm": "移除这个链接？",
+    "toolbar.richView": "富文本",
+    "toolbar.sourceView": "源码",
+    "rt.bold": "粗体",
+    "rt.italic": "斜体",
+    "rt.strike": "删除线",
+    "rt.h1": "标题 1",
+    "rt.h2": "标题 2",
+    "rt.bulletList": "无序列表",
+    "rt.orderedList": "有序列表",
+    "rt.taskList": "任务列表",
+    "rt.blockquote": "引用",
+    "rt.codeBlock": "代码块",
+    "rt.link": "链接",
+    "rt.addLink": "添加链接…",
     "sidebar.close": "关闭",
     "toolbar.toggleSidebar": "章节 (\\)",
     "toolbar.info": "文档信息",
@@ -285,6 +325,26 @@ const STRINGS = {
      * "toolbar.setGoal" / "dashboard.ofGoal"，与它无关。 */
 },
   ja: {
+
+    // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
+    // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
+    // 本地存的界面语言设置失效。
+    "rt.toolbarLabel": "書式",
+    "rt.removeLinkConfirm": "このリンクを削除しますか？",
+    "toolbar.richView": "リッチ",
+    "toolbar.sourceView": "ソース",
+    "rt.bold": "太字",
+    "rt.italic": "斜体",
+    "rt.strike": "取り消し線",
+    "rt.h1": "見出し 1",
+    "rt.h2": "見出し 2",
+    "rt.bulletList": "箇条書き",
+    "rt.orderedList": "番号付きリスト",
+    "rt.taskList": "タスクリスト",
+    "rt.blockquote": "引用",
+    "rt.codeBlock": "コードブロック",
+    "rt.link": "リンク",
+    "rt.addLink": "リンクを追加…",
     "sidebar.close": "閉じる",
     "toolbar.toggleSidebar": "チャプター (\\)",
     "toolbar.info": "文書情報",
@@ -412,6 +472,26 @@ const STRINGS = {
     "license.privacyNote": "アクティベートではコードを rocktier.com に一度送信し、署名済みのレシートをローカルに保存します。それ以外のデータは一切送信されません。",
   },
   ko: {
+
+    // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
+    // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
+    // 本地存的界面语言设置失效。
+    "rt.toolbarLabel": "서식",
+    "rt.removeLinkConfirm": "이 링크를 제거할까요?",
+    "toolbar.richView": "서식",
+    "toolbar.sourceView": "소스",
+    "rt.bold": "굵게",
+    "rt.italic": "기울임꼴",
+    "rt.strike": "취소선",
+    "rt.h1": "제목 1",
+    "rt.h2": "제목 2",
+    "rt.bulletList": "글머리 기호",
+    "rt.orderedList": "번호 매기기",
+    "rt.taskList": "작업 목록",
+    "rt.blockquote": "인용",
+    "rt.codeBlock": "코드 블록",
+    "rt.link": "링크",
+    "rt.addLink": "링크 추가…",
     "sidebar.close": "닫기",
     "toolbar.toggleSidebar": "챕터 (\\)",
     "toolbar.info": "문서 정보",
@@ -539,6 +619,26 @@ const STRINGS = {
     "license.privacyNote": "인증 시 코드를 rocktier.com에 한 번 전송하고 서명된 영수증을 이 기기에 저장합니다. 그 외의 데이터는 전송되지 않습니다.",
   },
   fr: {
+
+    // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
+    // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
+    // 本地存的界面语言设置失效。
+    "rt.toolbarLabel": "Mise en forme",
+    "rt.removeLinkConfirm": "Supprimer ce lien ?",
+    "toolbar.richView": "Riche",
+    "toolbar.sourceView": "Source",
+    "rt.bold": "Gras",
+    "rt.italic": "Italique",
+    "rt.strike": "Barré",
+    "rt.h1": "Titre 1",
+    "rt.h2": "Titre 2",
+    "rt.bulletList": "Liste à puces",
+    "rt.orderedList": "Liste numérotée",
+    "rt.taskList": "Liste de tâches",
+    "rt.blockquote": "Citation",
+    "rt.codeBlock": "Bloc de code",
+    "rt.link": "Lien",
+    "rt.addLink": "Ajouter un lien…",
     "sidebar.close": "Fermer",
     "toolbar.toggleSidebar": "Chapitres (\\)",
     "toolbar.info": "Infos du document",
@@ -666,6 +766,26 @@ const STRINGS = {
     "license.privacyNote": "L'activation envoie le code une seule fois à rocktier.com et enregistre la réponse signée localement. Rien d'autre n'est envoyé.",
   },
   de: {
+
+    // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
+    // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
+    // 本地存的界面语言设置失效。
+    "rt.toolbarLabel": "Formatierung",
+    "rt.removeLinkConfirm": "Diesen Link entfernen?",
+    "toolbar.richView": "Rich",
+    "toolbar.sourceView": "Quelltext",
+    "rt.bold": "Fett",
+    "rt.italic": "Kursiv",
+    "rt.strike": "Durchgestrichen",
+    "rt.h1": "Überschrift 1",
+    "rt.h2": "Überschrift 2",
+    "rt.bulletList": "Aufzählung",
+    "rt.orderedList": "Nummerierte Liste",
+    "rt.taskList": "Aufgabenliste",
+    "rt.blockquote": "Zitat",
+    "rt.codeBlock": "Codeblock",
+    "rt.link": "Link",
+    "rt.addLink": "Link hinzufügen…",
     "sidebar.close": "Schließen",
     "toolbar.toggleSidebar": "Kapitel (\\)",
     "toolbar.info": "Dokumentinfo",
@@ -793,6 +913,26 @@ const STRINGS = {
     "license.privacyNote": "Bei der Aktivierung wird der Code einmal an rocktier.com gesendet und die signierte Antwort lokal gespeichert. Nichts anderes wird übertragen.",
   },
   es: {
+
+    // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
+    // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
+    // 本地存的界面语言设置失效。
+    "rt.toolbarLabel": "Formato",
+    "rt.removeLinkConfirm": "¿Eliminar este enlace?",
+    "toolbar.richView": "Rica",
+    "toolbar.sourceView": "Fuente",
+    "rt.bold": "Negrita",
+    "rt.italic": "Cursiva",
+    "rt.strike": "Tachado",
+    "rt.h1": "Encabezado 1",
+    "rt.h2": "Encabezado 2",
+    "rt.bulletList": "Lista con viñetas",
+    "rt.orderedList": "Lista numerada",
+    "rt.taskList": "Lista de tareas",
+    "rt.blockquote": "Cita",
+    "rt.codeBlock": "Bloque de código",
+    "rt.link": "Enlace",
+    "rt.addLink": "Añadir enlace…",
     "sidebar.close": "Cerrar",
     "toolbar.toggleSidebar": "Capítulos (\\)",
     "toolbar.info": "Info del documento",
@@ -920,6 +1060,26 @@ const STRINGS = {
     "license.privacyNote": "Al activar, el código se envía una vez a rocktier.com y la respuesta firmada se guarda en este equipo. No se envía nada más.",
   },
   pt: {
+
+    // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
+    // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
+    // 本地存的界面语言设置失效。
+    "rt.toolbarLabel": "Formatação",
+    "rt.removeLinkConfirm": "Remover este link?",
+    "toolbar.richView": "Rica",
+    "toolbar.sourceView": "Fonte",
+    "rt.bold": "Negrito",
+    "rt.italic": "Itálico",
+    "rt.strike": "Tachado",
+    "rt.h1": "Título 1",
+    "rt.h2": "Título 2",
+    "rt.bulletList": "Lista com marcas",
+    "rt.orderedList": "Lista numerada",
+    "rt.taskList": "Lista de tarefas",
+    "rt.blockquote": "Citação",
+    "rt.codeBlock": "Bloco de código",
+    "rt.link": "Link",
+    "rt.addLink": "Adicionar link…",
     "sidebar.close": "Fechar",
     "toolbar.toggleSidebar": "Capítulos (\\)",
     "toolbar.info": "Info do documento",
