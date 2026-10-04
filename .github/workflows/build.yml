@@ -67,11 +67,22 @@ jobs:
           codesign -dv "$APP" 2>&1 || true
           xattr -cr "$APP"
           DMG=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -name "*.dmg" -print -quit)
-          if [ -n "$DMG" ]; then
-            xattr -cr "$DMG"
-            echo "Cleaned quarantine attrs on dmg"
+          # Tauri 在 targets:"all" 下确实会产出 .dmg（这一步一直能找到它），
+          # 但此前**从不把它上传** —— 而 REQUIRED_ASSETS 却要求 `\.dmg$`。
+          # 于是资产校验永远不通过，tag 发版卡在最后一步（2026-10-04 首次撞上：
+          # v1.2.0 的两端包都构建成功、已附加，publish 步骤失败）。
+          #
+          # 与 PDF 那套「签名后重打 dmg」不同：那里签名发生在构建**之后**
+          # （用 APPLE_CERT_P12 导入临时 keychain），dmg 里装的是签名前的 app，
+          # 所以必须重打。本仓是 `APPLE_SIGNING_IDENTITY="-"` 的 job 级变量，
+          # tauri-action 构建时就 ad-hoc 签名 .app 再打进 dmg —— 顺序已经是对的，
+          # 不需要重打。
+          if [ -z "$DMG" ]; then
+            echo "::error::.dmg not found — tauri.conf.json 的 bundle.targets 应为 all 或含 dmg"
+            exit 1
           fi
-          echo "✅ ad-hoc signing confirmed + quarantine cleared"
+          xattr -cr "$DMG"
+          echo "✅ ad-hoc signing confirmed + quarantine cleared (app & dmg)"
 
       - name: Package app.zip
         run: |
@@ -80,13 +91,20 @@ jobs:
           [ -z "$APP" ] && { echo "::error::.app not found"; exit 1; }
           ditto -c -k --keepParent "$APP" "Rocktier.Write_aarch64.app.zip"
 
-      - name: Attach app.zip to release (tag push)
+      # 同时上传 .dmg 与 .app.zip：
+      #   · .dmg —— macOS 的原生分发形态，REQUIRED_ASSETS 要求的那个
+      #   · .app.zip —— 保留。.dmg 在未签名情况下 Gatekeeper 仍会拦（Q8 已定
+      #     暂不做代码签名），右键「打开」可绕过；.app.zip 给不愿挂载镜像的用户
+      #     一个直接解压就能用的选择。两者并存不增加维护成本（同一个构建产物）。
+      - name: Attach macOS artifacts to release (tag push)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
-          files: Rocktier.Write_aarch64.app.zip
+          files: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            Rocktier.Write_aarch64.app.zip
           generate_release_notes: false
 
   # ── Windows (MSI via WiX) ──────────────────────────────────────────────
