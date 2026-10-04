@@ -1425,6 +1425,26 @@ html.is-mac .toolbar {
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
+/* 语气分级（家族铁律 7：保存成功与保存失败必须视觉可区分）。
+   此前两者共用 .toast，2.5 秒后一起消失 —— 用户会把「Save failed」
+   误读成「Saved」，然后关掉编辑器丢掉未保存的稿子。
+   左边条 + 文字色 + 背景三层双编码，不靠单一颜色传递语义（铁律 2）。 */
+.toast--success {
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
+  border-left: 3px solid var(--success);
+  color: var(--text-primary);
+}
+.toast--error {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  border-left: 3px solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, var(--bg-floating));
+  color: var(--text-primary);
+  /* .toast 默认 pointer-events:none（避免挡住编辑区）。
+     错误要能点掉：用户需要时间读完「无法写入文件」并决定下一步。 */
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 .find-input {
   background: var(--accent-muted);
   border: 1px solid var(--border);

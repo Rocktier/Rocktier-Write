@@ -30,6 +30,9 @@ import { WELCOME_DOCUMENT, type MarkdownDocument } from "./types/index";
 import { t, useUiLang } from "./i18n";
 import { extractFrontmatter } from "./services/markdown";
 
+/** toast 语气。error 必须同时改变配色、存活时长、可点击关闭与 aria role（家族铁律 7）。 */
+type ToastTone = "info" | "success" | "error";
+
 /* 2026-10-04 键改名：家族命名空间统一用「.」，此前 Write 用的是 "rocktier-write-…"（连字符）。
  * 改名只为跨产品一致，不该顺手清掉用户已选的偏好 —— 所以读取处仍回落旧键。旧键不删。 */
 // 只写键（仅 setItem/removeItem，无读取点）—— 改名无需迁移数据，故不留 legacy 常量。
@@ -75,7 +78,7 @@ export default function App() {
   const [activeId, setActiveId] = useState<string>(BOOT_DOC_ID);
 
   const [sidebar, setSidebar] = useState(true);
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState<{ msg: string; tone: ToastTone } | null>(null);
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
   const [cursorLine, setCursorLine] = useState(1);
   const [focusMode, setFocusMode] = useState<"off" | "paragraph" | "sentence">("off");
@@ -199,10 +202,15 @@ export default function App() {
     return ch;
   }, [headings, cursorLine]);
 
-  const showToast = useCallback((msg: string) => {
-    setToast(msg);
+  /* toast 分三种语气。此前成功与失败共用一个 .toast class、2.5 秒消失，
+     「Saved」和「Save failed: could not write file」长得一模一样 ——
+     用户会以为文档存好了。这是数据层面的误导，优先级高于任何视觉问题（家族铁律 7）。
+     失败还必须活得更久：错误提示消失得比成功快，是最常见的反模式。 */
+  const showToast = useCallback((msg: string, tone: ToastTone = "info") => {
+    setToast({ msg, tone });
     if (toastRef.current) clearTimeout(toastRef.current);
-    toastRef.current = setTimeout(() => setToast(""), 2500);
+    const ttl = tone === "error" ? 6000 : 2500;
+    toastRef.current = setTimeout(() => setToast(null), ttl);
   }, []);
 
   // ── License（家族 L6）：读一次试用状态；写操作被拦时由 Rust 发 license-expired
@@ -362,12 +370,12 @@ export default function App() {
       try {
         const md = await invoke<string>("import_docx", { path: r.path });
         openContent(md, null, "\n", true);
-        showToast(t("toast.docxImported"));
-      } catch { showToast(t("toast.cannotOpenFile")); }
+        showToast(t("toast.docxImported"), "success");
+      } catch { showToast(t("toast.cannotOpenFile"), "error"); }
       return;
     }
     openContent(r.content, r.path, r.eol);
-    showToast(t("toast.fileOpened"));
+    showToast(t("toast.fileOpened"), "success");
   }, [openContent, showToast]);
 
   // ── Save ─────────────────────────────────────────────────────────
@@ -393,11 +401,11 @@ export default function App() {
       lastSavedRef.current.set(id, content);
       setSavedAtMap((m) => ({ ...m, [id]: Date.now() }));
       invoke("clear_recovery", { path: finalPath ?? untitledKey(id) }).catch(() => {});
-      showToast(t("toast.saved"));
+      showToast(t("toast.saved"), "success");
     } catch (e) {
       // 事件链已弹对话框（license-expired）；这里兜错误串，防事件丢失时只剩裸失败。
       if (isLicenseExpiredError(e)) openLicense();
-      else showToast(t("toast.saveFailed"));
+      else showToast(t("toast.saveFailed"), "error");
     }
   }, [activeDoc, showToast, rememberPath, openLicense]);
 
@@ -413,11 +421,11 @@ export default function App() {
         setSavedAtMap((m) => ({ ...m, [id]: Date.now() }));
         rememberPath(p);
         invoke("clear_recovery", { path: untitledKey(id) }).catch(() => {});
-        showToast(t("toast.savedAs"));
+        showToast(t("toast.savedAs"), "success");
       }
     } catch (e) {
       if (isLicenseExpiredError(e)) openLicense();
-      else showToast(t("toast.saveFailed"));
+      else showToast(t("toast.saveFailed"), "error");
     }
   }, [activeDoc, showToast, rememberPath, openLicense]);
 
@@ -433,11 +441,11 @@ export default function App() {
         targetPath = p;
       }
       await invoke("export_docx", { markdown: content, outputPath: targetPath });
-      showToast(t("toast.docxExported"));
+      showToast(t("toast.docxExported"), "success");
     } catch (e) {
       // 导出被授权闸门拦下 → 弹激活对话框；其余失败维持原 toast。
       if (isLicenseExpiredError(e)) openLicense();
-      else showToast(t("toast.saveFailed"));
+      else showToast(t("toast.saveFailed"), "error");
     }
   }, [activeDoc, showToast, openLicense]);
 
@@ -452,7 +460,7 @@ export default function App() {
       // 被授权闸门拦下则弹激活对话框，不算打印失败。
       invoke("print_doc").catch((e) => {
         if (isLicenseExpiredError(e)) openLicense();
-        else showToast(t("toast.saveFailed"));
+        else showToast(t("toast.saveFailed"), "error");
       });
     });
   }, [viewMode, showToast, openLicense]);
@@ -465,7 +473,7 @@ export default function App() {
     async (mime: string, b64: string) => {
       const path = activeDoc.path;
       if (!path) {
-        showToast(t("toast.saveFirstForImage"));
+        showToast(t("toast.saveFirstForImage"), "error");
         return;
       }
       const ext = mime.includes("png")
@@ -491,12 +499,12 @@ export default function App() {
           };
         }).__cmView;
         if (cm) cm.dispatch({ changes: { from: cm.state.selection.main.head, insert: md } });
-        showToast(t("toast.pastedImage"));
+        showToast(t("toast.pastedImage"), "success");
       } catch (e) {
         // 图片落盘被闸门拦下：弹激活对话框；返回 null 交回编辑器走内联 base64 兜底
         // （不写盘的内容允许留在文档里，但保存会被拦）。
         if (isLicenseExpiredError(e)) openLicense();
-        else showToast(t("toast.imageFailed"));
+        else showToast(t("toast.imageFailed"), "error");
       }
     },
     [activeDoc.path, showToast, openLicense],
@@ -507,7 +515,7 @@ export default function App() {
     const newDoc: MarkdownDocument = { id: newDocId(), path: null, content: "", modified: false };
     setDocs((prev) => [...prev, newDoc]);
     setActiveId(newDoc.id);
-    showToast(t("toast.newDoc"));
+    showToast(t("toast.newDoc"), "success");
   }, [showToast]);
 
   // ── Close a doc ──────────────────────────────────────────────────
@@ -619,7 +627,7 @@ export default function App() {
         if (!p) return;
         if (p.toLowerCase().endsWith(".docx")) {
           await invoke("export_docx", { markdown: content, outputPath: p });
-          showToast(t("toast.docxExported"));
+          showToast(t("toast.docxExported"), "success");
           return;
         }
         await saveFileAs(applyEol(content, eol), p);
@@ -631,17 +639,17 @@ export default function App() {
         setSavedAtMap((m) => ({ ...m, [id]: Date.now() }));
         rememberPath(p);
         invoke("clear_recovery", { path: untitledKey(id) }).catch(() => {});
-        showToast(t("toast.savedAs"));
+        showToast(t("toast.savedAs"), "success");
       } catch (e) {
         if (isLicenseExpiredError(e)) openLicense();
-        else showToast(t("toast.saveFailed"));
+        else showToast(t("toast.saveFailed"), "error");
       }
     }, [activeDoc, showToast, rememberPath, openLicense]);
 
   const openPath = useCallback(async (filePath: string): Promise<boolean> => {
     const ext = filePath.split(".").pop()?.toLowerCase();
     if (!ext || (!MARKDOWN_EXTS.includes(ext) && !DOCX_EXTS.includes(ext))) {
-      showToast(t("toast.unsupportedType")); return false;
+      showToast(t("toast.unsupportedType"), "error"); return false;
     }
     const hasUnsaved = docs.some((d) => d.modified);
     if (hasUnsaved) { if (!(await confirmDialog(t("confirm.discard")))) return false; }
@@ -649,13 +657,13 @@ export default function App() {
       if (DOCX_EXTS.includes(ext)) {
         const md = await invoke<string>("import_docx", { path: filePath });
         openContent(md, null, "\n", true);
-        showToast(t("toast.docxImported")); return true;
+        showToast(t("toast.docxImported"), "success"); return true;
       }
-      if (!(await exists(filePath))) { showToast(t("toast.cannotOpenFile")); return false; }
+      if (!(await exists(filePath))) { showToast(t("toast.cannotOpenFile"), "error"); return false; }
       const { content, eol } = normalizeEol(await readTextFile(filePath));
       openContent(content, filePath, eol);
-      showToast(t("toast.fileOpened")); return true;
-    } catch { showToast(t("toast.cannotReadFile")); return false; }
+      showToast(t("toast.fileOpened"), "success"); return true;
+    } catch { showToast(t("toast.cannotReadFile"), "error"); return false; }
   }, [docs, showToast, openContent]);
 
   const onDrop = useCallback(async (e: React.DragEvent) => {
@@ -663,7 +671,7 @@ export default function App() {
     const file = e.dataTransfer.files[0];
     if (!file) return;
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!ext || (!MARKDOWN_EXTS.includes(ext) && !DOCX_EXTS.includes(ext))) { showToast(t("toast.unsupportedType")); return; }
+    if (!ext || (!MARKDOWN_EXTS.includes(ext) && !DOCX_EXTS.includes(ext))) { showToast(t("toast.unsupportedType"), "error"); return; }
     const hasUnsaved = docs.some((d) => d.modified);
     if (hasUnsaved) if (!(await confirmDialog(t("confirm.discard")))) return;
     try {
@@ -674,13 +682,13 @@ export default function App() {
         const data = Array.from(new Uint8Array(await file.arrayBuffer()));
         const md = await invoke<string>("import_docx_data", { data });
         openContent(md, null, "\n", true);
-        showToast(t("toast.docxImported"));
+        showToast(t("toast.docxImported"), "success");
         return;
       }
       const { content, eol } = normalizeEol(await file.text());
       openContent(content, null, eol);
-      showToast(t("toast.fileOpened"));
-    } catch { showToast(t("toast.cannotReadFile")); }
+      showToast(t("toast.fileOpened"), "success");
+    } catch { showToast(t("toast.cannotReadFile"), "error"); }
   }, [docs, showToast, openContent]);
 
   useEffect(() => {
@@ -769,7 +777,7 @@ export default function App() {
         setActiveDoc((d) => ({ ...d, path, content: diskContent, modified: false }));
         lastSavedRef.current.set(id, diskContent);
         lastPathRef.current = path;
-        showToast(t("toast.reloaded"));
+        showToast(t("toast.reloaded"), "success");
       } else { lastSavedRef.current.set(id, diskContent); }
     } catch { /* ignore */ } finally { checkingRef.current = false; }
   }, [activeDoc, showToast]);
@@ -986,7 +994,15 @@ export default function App() {
       {licenseOpen && (
         <LicenseDialog info={license} onRefresh={refreshLicense} onClose={() => setLicenseOpen(false)} />
       )}
-      {toast && <div className="toast" role="status">{toast}</div>}
+      {toast && (
+        <div
+          className={toast.tone === "info" ? "toast" : `toast toast--${toast.tone}`}
+          role={toast.tone === "error" ? "alert" : "status"}
+          onClick={() => setToast(null)}
+        >
+          {toast.msg}
+        </div>
+      )}
     </div>
   );
 }
