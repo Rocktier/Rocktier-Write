@@ -9,7 +9,8 @@
 }
 
 html {
-  font-size: 15px;
+  /* 家族根字号统一 16px（2026-10-04）：根字号不再做产品级缩放，
+     编辑器密度用 body 上的 px 字号表达（见下），rem 的含义全家族一致 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -23,6 +24,7 @@ html, body {
 
 body {
   font-family: var(--font-sans);
+  font-size: 15px;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;
