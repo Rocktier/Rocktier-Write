@@ -26,19 +26,17 @@
 import { createContext, useContext, useEffect, useRef } from "react";
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "@tiptap/markdown";
-import Image from "@tiptap/extension-image";
-import TaskList from "@tiptap/extension-task-list";
-import TaskItem from "@tiptap/extension-task-item";
-import {
-  Table,
-  TableRow,
-  TableCell,
-  TableHeader,
-} from "@tiptap/extension-table";
 import Placeholder from "@tiptap/extension-placeholder";
+import RichTextExtensions from "../services/richTextExtensions";
+import {
+  protectEscapedChars,
+  unprotectEscapedChars,
+  restoreEscapedBackslashes,
+} from "../services/restoreBackslashes";
 import { RichTextToolbar } from "./RichTextToolbar";
+import { RichTextFindReplace } from "./RichTextFindReplace";
+import { SlashMenu } from "./SlashMenu";
 import { extractFrontmatter } from "../services/markdown";
 import { t } from "../i18n";
 
@@ -65,6 +63,9 @@ interface Props {
   onPasteImage?: (mime: string, base64Data: string) => void;
   onCursorMove?: (line: number) => void;
   placeholder?: string;
+  /** 富文本视图的查找替换开关（由 App 的 Cmd+F / 菜单 / 工具栏共用回调驱动）。 */
+  findOpen?: boolean;
+  onFindClose?: () => void;
 }
 
 export function RichTextEditor({
@@ -73,6 +74,9 @@ export function RichTextEditor({
   onPasteImage,
   onCursorMove,
   placeholder,
+  /** 富文本视图的查找替换开关（由 App 的 Cmd+F / 菜单 / 工具栏共用回调驱动）。 */
+  findOpen,
+  onFindClose,
 }: Props) {
   /** frontmatter 与正文分开存：编辑器只拿正文，改动时再拼回去。 */
   const fmRef = useRef<string | null>(null);
@@ -84,24 +88,27 @@ export function RichTextEditor({
   const cursorRef = useRef(onCursorMove);
   cursorRef.current = onCursorMove;
 
+  /* ⚠️ 反斜杠还原：不要在别处直接调 editor.getMarkdown() 写盘 ——
+   * 漏一处就等于该处会把翻倍的反斜杠写进用户文档（公式与转义静默变形）。
+   * 每一处都走 restoreEscapedBackslashes，实测记录见该文件。 */
+
   // 首帧解析一次 frontmatter（后续改动靠 onUpdate 维护 fmRef）
+  /* 原文另存一份：写盘时要用它判断「末尾换行原本有没有」，否则 Tiptap 抹掉的
+     末尾换行就补不回来了（它输出里已经没有这个信息）。 */
+  const originalRef = useRef(content);
+
+  // 进编辑器前保护「反斜杠 + 非字母数字」的转义序列（`\,` `\!` …）。
+  // 这一步必须在 Tiptap 之前 —— 出编辑器就还原不回 `\,` 了，理由见该文件。
   const initial = extractFrontmatter(content);
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      ...RichTextExtensions,
       Markdown,
-      Image.configure({ allowBase64: true }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Table.configure({ resizable: false }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      // 空文档提示：中文/英文各语言走 i18n 键，不硬编码
+      // 空文档提示：走 i18n 键，不硬编码语言
       Placeholder.configure({ placeholder: placeholder ?? t("editor.placeholder") }),
     ],
-    content: initial.body,
+    content: protectEscapedChars(initial.body),
     contentType: "markdown",
     editorProps: {
       attributes: {
@@ -126,7 +133,11 @@ export function RichTextEditor({
     },
     onUpdate: ({ editor: e }) => {
       // 正文变化时保留原有 frontmatter 原样输出，不让编辑器碰它
-      onChangeRef.current(fmRef.current ? `---\n${fmRef.current}\n---\n\n${e.getMarkdown()}` : e.getMarkdown());
+      // 顺序固定：先 unprotect（把占位符换回「\x」）再折半还原。
+      // 反过来会让占位符里的字符也参与折半判断。
+      const raw = unprotectEscapedChars(e.getMarkdown());
+      const body = restoreEscapedBackslashes(raw, originalRef.current);
+      onChangeRef.current(fmRef.current ? `---\n${fmRef.current}\n---\n\n${body}` : body);
     },
     onSelectionUpdate: ({ editor: e }) => {
       if (!cursorRef.current) return;
@@ -150,21 +161,40 @@ export function RichTextEditor({
     if (!editor) return;
     const { body, frontmatter } = extractFrontmatter(content);
     const next = body.replace(/\r\n/g, "\n");
-    const current = editor.getMarkdown().replace(/\r\n/g, "\n");
+    // 两边都先还原再比较：编辑器里的状态是「已翻倍」的形态，
+    // 而传入的 content 是磁盘形态（单反斜杠）。不还原就比会永远不相等，
+    // 于是每次父级 re-render 都重置选区与撤销栈。
+    // 两边都先转成「编辑器形态」再比较：编辑器里存的是受保护+翻倍的状态，
+    // 而 content 是磁盘形态。不对齐就会永远不相等，于是每次父级 re-render
+    // 都重置选区与撤销栈 —— 用户切一下标签页就丢撤销历史。
+    originalRef.current = content;
+    const current = unprotectEscapedChars(editor.getMarkdown())
+      .replace(/\r\n/g, "\n");
     if (current !== next) {
-      editor.commands.setContent(next, { contentType: "markdown" });
+      editor.commands.setContent(protectEscapedChars(next), { contentType: "markdown" });
     }
     fmRef.current = frontmatter;
   }, [editor, content]);
 
   // 文档切换后重新上报一次，否则新文档的字数/状态栏会停在上一个
   useEffect(() => {
-    if (editor) onChangeRef.current(fmRef.current ? `---\n${fmRef.current}\n---\n\n${editor.getMarkdown()}` : editor.getMarkdown());
+    if (editor) {
+      const raw = unprotectEscapedChars(editor.getMarkdown());
+      const body = restoreEscapedBackslashes(raw, originalRef.current);
+      onChangeRef.current(fmRef.current ? `---\n${fmRef.current}\n---\n\n${body}` : body);
+    }
   }, [editor]);
 
   return (
     <RichTextCtx.Provider value={editor}>
       <RichTextToolbar editor={editor} />
+      {/* 查找替换必须挂在 Provider **内部**：它靠 useRichText() 取 editor 实例。
+          挂在外面会拿到 null —— 而 null 时组件渲染成「点不动的空壳」，
+          正好是查找功能最坏的失败形态。 */}
+      {findOpen && <RichTextFindReplace onClose={() => onFindClose?.()} />}
+      {/* Slash 菜单用 portal 之外的 fixed 定位，但要挂在 Provider 内才能拿到
+          editor —— 它靠 useRichText() 读 Context。 */}
+      <SlashMenu editor={editor} />
       <EditorContent editor={editor} />
     </RichTextCtx.Provider>
   );

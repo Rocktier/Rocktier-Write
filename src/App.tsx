@@ -539,10 +539,15 @@ export default function App() {
   /* 查找替换依赖 CodeMirror 面板；不在源码视图时先切回去，否则 ⌘F / 菜单 / 工具栏
      三条入口都会被渲染门（cmReady && findReplaceOpen && viewMode === "source"）
      静默吞掉。三条路径共用这一个回调，行为保持一致（对齐原工具栏按钮写法）。 */
+  /* 三态下查找替换**不再强制切视图**：富文本视图有自己的一份
+     （RichTextFindReplace），两边的实现不同但体验一致 ——
+     统一后行为在三个视图里都成立，不必为了按 Cmd+F 而跳走。
+     早先这里写死 setViewMode("source")，那是在只有两个视图时的合理选择，
+     加了富文本后它就变成了「按查找会离开我正在写的视图」。 */
   const toggleFindReplace = useCallback(() => {
-    setViewMode("source");
+    if (viewMode === "preview") setViewMode("rich");
     setFindReplaceOpen((v) => !v);
-  }, []);
+  }, [viewMode]);
 
   // ── Menu ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -913,10 +918,13 @@ export default function App() {
         </aside>
         <main className="editor-container">
           <ViewSwitch viewMode={viewMode} onChange={setViewMode} />
-          {/* 查找替换只在源码视图可用：CodeMirror 侧才有真实的选区与搜索状态，
-              富文本视图里再挂一份 FindReplace 会与 Tiptap 的快捷键抢 Ctrl+F。 */}
+          {/* 查找替换按视图分流：源码视图用 CodeMirror 那份（挂在 .editor-pane-wrap
+              内部、靠 window.__cmView 定位选区），富文本视图用 RichTextFindReplace
+              （挂在 Provider 内部、靠 Context 取 editor 实例）。 */}
           {cmReady && findReplaceOpen && viewMode === "source" && (
-            <FindReplace onClose={() => setFindReplaceOpen(false)} />
+            <div className="editor-pane-wrap">
+              <FindReplace onClose={() => setFindReplaceOpen(false)} />
+            </div>
           )}
 
           {/* 三个视图都挂载、用 CSS 显隐而不是条件渲染：切换时不重新挂载编辑器，
@@ -949,6 +957,8 @@ export default function App() {
               onPasteImage={onPasteImage}
               onCursorMove={onCursorMove}
               placeholder={t("editor.placeholder")}
+              findOpen={findReplaceOpen}
+              onFindClose={() => setFindReplaceOpen(false)}
             />
           </div>
 

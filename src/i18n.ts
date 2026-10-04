@@ -32,6 +32,18 @@ const STRINGS = {
     // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
     // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
     // 本地存的界面语言设置失效。
+    // Slash 菜单（2026-10-04）—— labelKey 必须与 SlashMenu.tsx 的 SlashKey 联合一致。
+    "slash.menuLabel": "Insert block",
+    "slash.paragraph": "Text",
+    "slash.heading1": "Heading 1",
+    "slash.heading2": "Heading 2",
+    "slash.heading3": "Heading 3",
+    "slash.bulletList": "Bulleted list",
+    "slash.orderedList": "Numbered list",
+    "slash.taskList": "Task list",
+    "slash.blockquote": "Quote",
+    "slash.codeBlock": "Code block",
+    "slash.divider": "Divider",
     "rt.toolbarLabel": "Formatting",
     "rt.addLink": "Add link…",
     "rt.removeLinkConfirm": "Remove this link?",
@@ -87,6 +99,8 @@ const STRINGS = {
     "toolbar.setGoalPrompt": "Target word count (0 to cancel):",
     "toolbar.goalProgress": "{pct}% done",
     "toolbar.goalPlaceholder": "words",
+    "find.noMatch": "No matches",
+    "find.matchCaseTitle": "Match case",
     "find.find": "Find",
     "find.replace": "Replace",
     "find.replaceAll": "All",
@@ -179,6 +193,18 @@ const STRINGS = {
     // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
     // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
     // 本地存的界面语言设置失效。
+    // Slash 菜单（2026-10-04）—— labelKey 必须与 SlashMenu.tsx 的 SlashKey 联合一致。
+    "slash.menuLabel": "插入块",
+    "slash.paragraph": "正文",
+    "slash.heading1": "标题 1",
+    "slash.heading2": "标题 2",
+    "slash.heading3": "标题 3",
+    "slash.bulletList": "无序列表",
+    "slash.orderedList": "有序列表",
+    "slash.taskList": "任务列表",
+    "slash.blockquote": "引用",
+    "slash.codeBlock": "代码块",
+    "slash.divider": "分割线",
     "rt.toolbarLabel": "格式",
     "rt.removeLinkConfirm": "移除这个链接？",
     "toolbar.richView": "富文本",
@@ -236,6 +262,8 @@ const STRINGS = {
     "toolbar.setGoalPrompt": "目标字数（0 取消）：",
     "toolbar.goalProgress": "已完成 {pct}%",
     "toolbar.goalPlaceholder": "字数",
+    "find.noMatch": "无匹配",
+    "find.matchCaseTitle": "区分大小写",
     "find.find": "查找",
     "find.replace": "替换",
     "find.replaceAll": "全部替换",
@@ -329,6 +357,18 @@ const STRINGS = {
     // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
     // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
     // 本地存的界面语言设置失效。
+    // Slash 菜单（2026-10-04）—— labelKey 必须与 SlashMenu.tsx 的 SlashKey 联合一致。
+    "slash.menuLabel": "ブロックを挿入",
+    "slash.paragraph": "テキスト",
+    "slash.heading1": "見出し 1",
+    "slash.heading2": "見出し 2",
+    "slash.heading3": "見出し 3",
+    "slash.bulletList": "箇条書き",
+    "slash.orderedList": "番号付きリスト",
+    "slash.taskList": "タスクリスト",
+    "slash.blockquote": "引用",
+    "slash.codeBlock": "コードブロック",
+    "slash.divider": "区切り線",
     "rt.toolbarLabel": "書式",
     "rt.removeLinkConfirm": "このリンクを削除しますか？",
     "toolbar.richView": "リッチ",
@@ -386,6 +426,8 @@ const STRINGS = {
     "toolbar.setGoalPrompt": "目標字数（0でキャンセル）：",
     "toolbar.goalProgress": "{pct}% 達成",
     "toolbar.goalPlaceholder": "文字数",
+    "find.noMatch": "該当なし",
+    "find.matchCaseTitle": "大文字小文字を区別",
     "find.find": "検索",
     "find.replace": "置換",
     "find.replaceAll": "全置換",
@@ -476,6 +518,18 @@ const STRINGS = {
     // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
     // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
     // 本地存的界面语言设置失效。
+    // Slash 菜单（2026-10-04）—— labelKey 必须与 SlashMenu.tsx 的 SlashKey 联合一致。
+    "slash.menuLabel": "블록 삽입",
+    "slash.paragraph": "본문",
+    "slash.heading1": "제목 1",
+    "slash.heading2": "제목 2",
+    "slash.heading3": "제목 3",
+    "slash.bulletList": "글머리 기호",
+    "slash.orderedList": "번호 매기기",
+    "slash.taskList": "작업 목록",
+    "slash.blockquote": "인용",
+    "slash.codeBlock": "코드 블록",
+    "slash.divider": "구분선",
     "rt.toolbarLabel": "서식",
     "rt.removeLinkConfirm": "이 링크를 제거할까요?",
     "toolbar.richView": "서식",
@@ -531,6 +585,8 @@ const STRINGS = {
     "toolbar.setGoalPrompt": "목표 단어 수 (0으로 취소)：",
     "toolbar.goalProgress": "{pct}% 달성",
     "toolbar.goalPlaceholder": "단어 수",
+    "find.noMatch": "일치 없음",
+    "find.matchCaseTitle": "대소문자 구분",
     "find.find": "찾기",
     "find.replace": "바꾸기",
     "find.replaceAll": "모두 바꾸기",
@@ -623,6 +679,18 @@ const STRINGS = {
     // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
     // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
     // 本地存的界面语言设置失效。
+    // Slash 菜单（2026-10-04）—— labelKey 必须与 SlashMenu.tsx 的 SlashKey 联合一致。
+    "slash.menuLabel": "Insérer un bloc",
+    "slash.paragraph": "Texte",
+    "slash.heading1": "Titre 1",
+    "slash.heading2": "Titre 2",
+    "slash.heading3": "Titre 3",
+    "slash.bulletList": "Liste à puces",
+    "slash.orderedList": "Liste numérotée",
+    "slash.taskList": "Liste de tâches",
+    "slash.blockquote": "Citation",
+    "slash.codeBlock": "Bloc de code",
+    "slash.divider": "Séparateur",
     "rt.toolbarLabel": "Mise en forme",
     "rt.removeLinkConfirm": "Supprimer ce lien ?",
     "toolbar.richView": "Riche",
@@ -680,6 +748,8 @@ const STRINGS = {
     "toolbar.setGoalPrompt": "Objectif de mots (0 pour annuler) :",
     "toolbar.goalProgress": "{pct}% atteint",
     "toolbar.goalPlaceholder": "mots",
+    "find.noMatch": "Aucun résultat",
+    "find.matchCaseTitle": "Respecter la casse",
     "find.find": "Rechercher",
     "find.replace": "Remplacer",
     "find.replaceAll": "Tout",
@@ -770,6 +840,18 @@ const STRINGS = {
     // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
     // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
     // 本地存的界面语言设置失效。
+    // Slash 菜单（2026-10-04）—— labelKey 必须与 SlashMenu.tsx 的 SlashKey 联合一致。
+    "slash.menuLabel": "Block einfügen",
+    "slash.paragraph": "Text",
+    "slash.heading1": "Überschrift 1",
+    "slash.heading2": "Überschrift 2",
+    "slash.heading3": "Überschrift 3",
+    "slash.bulletList": "Aufzählung",
+    "slash.orderedList": "Nummerierte Liste",
+    "slash.taskList": "Aufgabenliste",
+    "slash.blockquote": "Zitat",
+    "slash.codeBlock": "Codeblock",
+    "slash.divider": "Trennlinie",
     "rt.toolbarLabel": "Formatierung",
     "rt.removeLinkConfirm": "Diesen Link entfernen?",
     "toolbar.richView": "Rich",
@@ -827,6 +909,8 @@ const STRINGS = {
     "toolbar.setGoalPrompt": "Wortziel (0 zum Abbrechen)：",
     "toolbar.goalProgress": "{pct}% erreicht",
     "toolbar.goalPlaceholder": "Wörter",
+    "find.noMatch": "Keine Treffer",
+    "find.matchCaseTitle": "Groß-/Kleinschreibung",
     "find.find": "Suchen",
     "find.replace": "Ersetzen",
     "find.replaceAll": "Alle",
@@ -917,6 +1001,18 @@ const STRINGS = {
     // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
     // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
     // 本地存的界面语言设置失效。
+    // Slash 菜单（2026-10-04）—— labelKey 必须与 SlashMenu.tsx 的 SlashKey 联合一致。
+    "slash.menuLabel": "Insertar bloque",
+    "slash.paragraph": "Texto",
+    "slash.heading1": "Encabezado 1",
+    "slash.heading2": "Encabezado 2",
+    "slash.heading3": "Encabezado 3",
+    "slash.bulletList": "Lista con viñetas",
+    "slash.orderedList": "Lista numerada",
+    "slash.taskList": "Lista de tareas",
+    "slash.blockquote": "Cita",
+    "slash.codeBlock": "Bloque de código",
+    "slash.divider": "Separador",
     "rt.toolbarLabel": "Formato",
     "rt.removeLinkConfirm": "¿Eliminar este enlace?",
     "toolbar.richView": "Rica",
@@ -974,6 +1070,8 @@ const STRINGS = {
     "toolbar.setGoalPrompt": "Meta de palabras (0 para cancelar)：",
     "toolbar.goalProgress": "{pct}% logrado",
     "toolbar.goalPlaceholder": "palabras",
+    "find.noMatch": "Sin coincidencias",
+    "find.matchCaseTitle": "Distinguir mayúsculas",
     "find.find": "Buscar",
     "find.replace": "Reemplazar",
     "find.replaceAll": "Todo",
@@ -1064,6 +1162,18 @@ const STRINGS = {
     // 富文本模式（2026-10-04 Tiptap 选型）—— 视图由二态变三态：富文本 / 源码 / 预览。
     // `toolbar.editView` 保留原键名并沿用原义（源码），避免改键名让老用户
     // 本地存的界面语言设置失效。
+    // Slash 菜单（2026-10-04）—— labelKey 必须与 SlashMenu.tsx 的 SlashKey 联合一致。
+    "slash.menuLabel": "Inserir bloco",
+    "slash.paragraph": "Texto",
+    "slash.heading1": "Título 1",
+    "slash.heading2": "Título 2",
+    "slash.heading3": "Título 3",
+    "slash.bulletList": "Lista com marcas",
+    "slash.orderedList": "Lista numerada",
+    "slash.taskList": "Lista de tarefas",
+    "slash.blockquote": "Citação",
+    "slash.codeBlock": "Bloco de código",
+    "slash.divider": "Divisor",
     "rt.toolbarLabel": "Formatação",
     "rt.removeLinkConfirm": "Remover este link?",
     "toolbar.richView": "Rica",
@@ -1121,6 +1231,8 @@ const STRINGS = {
     "toolbar.setGoalPrompt": "Meta de palavras (0 para cancelar)：",
     "toolbar.goalProgress": "{pct}% atingido",
     "toolbar.goalPlaceholder": "palavras",
+    "find.noMatch": "Nenhuma ocorrência",
+    "find.matchCaseTitle": "Diferenciar maiúsculas",
     "find.find": "Buscar",
     "find.replace": "Substituir",
     "find.replaceAll": "Tudo",

@@ -831,6 +831,54 @@ html.is-mac .toolbar {
 }
 .rt-btn:active { background: var(--bg-card); }
 
+/* Slash 菜单：fixed 定位跟随光标。
+ * 为什么不用绝对定位 + 滚动偏移：编辑器区域会滚动，fixed 只要 coordsAtPos
+ * 给的屏幕坐标就永远对 —— 自己算 offsetTop 会在滚动、缩放、窗口移动时全错。
+ * z-index 要高于 .rich-editor 但低于浮层对话框（.overlay 50）——
+ * 菜单属于编辑器的一部分，不该盖住对话框。 */
+.slash-menu {
+  position: fixed;
+  z-index: 30;
+  min-width: 190px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.slash-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.slash-item:hover {
+  background: var(--bg-card-hover);
+}
+/* active = 键盘当前选中项。它必须比 :hover 更明显：用户往往不看鼠标，
+   只跟着「高亮那一行」按回车 —— 两者样式若相同会不知道会插入什么。 */
+.slash-item.active {
+  background: var(--bg-card-hover);
+  border-left: 2px solid var(--accent);
+  padding-left: 8px;
+}
+
+/* 富文本视图的查找替换条：与源码视图那份（.find-replace）视觉统一，
+   但它挂在 .rich-pane-wrap 内、是 flex 子项，故需要自己占一行。 */
+.rich-pane-wrap .find-replace {
+  flex: none;
+}
+
 .rich-editor {
   flex: 1;
   overflow-y: auto;
@@ -948,6 +996,36 @@ html.is-mac .toolbar {
 .rich-editor .ProseMirror th {
   background: var(--bg-card);
   font-weight: 600;
+}
+
+/* 表格结构控制（Tiptap 的 column-resize-handle / selectedCell 等）。
+ * 这些 class 由扩展注入、无法避免，故显式用家族令牌接管其外观 ——
+ * 否则会带着默认蓝边出现在深色档里。 */
+.rich-editor .ProseMirror .column-resize-handle {
+  background: var(--border-strong);
+  right: -2px;
+  width: 4px;
+  top: 0;
+  bottom: 0;
+  position: absolute;
+  pointer-events: none;
+}
+.rich-editor .ProseMirror .column-resize-handle.dragging {
+  background: var(--accent);
+}
+/* 拖拽时的落点指示线 */
+.rich-editor .ProseMirror.resize-cursor {
+  border-left: 1px solid var(--accent);
+  margin-left: -1px;
+  pointer-events: none;
+}
+.rich-editor .ProseMirror th.selectedCell::after,
+.rich-editor .ProseMirror td.selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent-glow);
+  pointer-events: none;
 }
 
 .rich-editor .ProseMirror ul[data-type="taskList"] {
