@@ -84,12 +84,38 @@ jobs:
           xattr -cr "$DMG"
           echo "✅ ad-hoc signing confirmed + quarantine cleared (app & dmg)"
 
-      - name: Package app.zip
+      # 把 .dmg 与 .app 都**拷到工作目录**再 attach。
+      #
+      # 为什么不用 `files: src-tauri/.../bundle/dmg/*.dmg` 直接传：
+      # `softprops/action-gh-release` 的 files 里 glob 匹配不到文件时**只发 warning
+      # 不失败**，步骤照样是绿的 —— 于是「上传成功」的表象下资产根本没进去，
+      # 直到最后 REQUIRED_ASSETS 校验才暴露。实测踩过：v1.2.0 第一次改成传 dmg 时，
+      # `Attach macOS artifacts` 显示 success，校验却仍缺 .dmg。
+      #
+      # 拷到工作目录后，上面的 `ls` 能在上传前就确认文件真的在，
+      # 缺了就当场报错 —— 失败发生在离原因最近的那一步。
+      - name: Stage macOS artifacts
         run: |
           set -e
           APP=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/macos -name "*.app" -print -quit)
           [ -z "$APP" ] && { echo "::error::.app not found"; exit 1; }
           ditto -c -k --keepParent "$APP" "Rocktier.Write_aarch64.app.zip"
+
+          DMG=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -name "*.dmg" -print -quit)
+          if [ -z "$DMG" ]; then
+            echo "::error::.dmg not found — 检查 tauri.conf.json 的 bundle.targets（应为 all 或含 dmg）"
+            exit 1
+          fi
+          # Tauri 的 dmg 命名是 <productName>_<version>_<arch>.dmg，即
+          # Rocktier.Write_1.2.0_aarch64.dmg —— **带版本号**，不能写死文件名。
+          # 硬编码一个名字会让 attach 的 glob 匹配不到（而该 action 只 warning
+          # 不报错），所以这里把真实文件名写进 GITHUB_ENV 给下一步用。
+          cp "$DMG" ./"$(basename "$DMG")"
+          xattr -cr "./"$(basename "$DMG")" || true
+          echo "DMG_NAME=$(basename "$DMG")" >> "$GITHUB_ENV"
+
+          echo "Staged:"
+          ls -la Rocktier.Write_aarch64.app.zip ./*.dmg
 
       # 同时上传 .dmg 与 .app.zip：
       #   · .dmg —— macOS 的原生分发形态，REQUIRED_ASSETS 要求的那个
@@ -103,8 +129,8 @@ jobs:
           tag_name: ${{ github.ref_name }}
           draft: true
           files: |
-            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
             Rocktier.Write_aarch64.app.zip
+            ${{ env.DMG_NAME }}
           generate_release_notes: false
 
   # ── Windows (MSI via WiX) ──────────────────────────────────────────────
