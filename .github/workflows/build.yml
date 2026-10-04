@@ -112,16 +112,20 @@ jobs:
             echo "::error::.dmg not found — 检查 tauri.conf.json 的 bundle.targets（应为 all 或含 dmg）"
             exit 1
           fi
-          # Tauri 的 dmg 命名是 <productName>_<version>_<arch>.dmg，即
-          # Rocktier.Write_1.2.0_aarch64.dmg —— **带版本号**，不能写死文件名。
-          # 硬编码一个名字会让 attach 的 glob 匹配不到（而该 action 只 warning
-          # 不报错），所以这里把真实文件名写进 GITHUB_ENV 给下一步用。
-          cp "$DMG" ./"$(basename "$DMG")"
-          xattr -cr "./"$(basename "$DMG")" || true
-          echo "DMG_NAME=$(basename "$DMG")" >> "$GITHUB_ENV"
+          # Tauri 的 dmg 命名实测为 <productName>_<version>_<arch>.dmg，
+          # 而 productName 是「Rocktier Write」——**带空格**，不是 Rocktier.Write。
+          # 本地实跑 `tauri build --bundles dmg` 确认：
+          #   bundle/dmg/Rocktier Write_1.2.0_aarch64.dmg
+          # 所以文件名一律用 `basename` 现取，绝不写死 ——
+          # 写死会让 attach 的 glob 匹配不到，而 softprops/action-gh-release
+          # 对「没匹配到」只发 warning 不报错，步骤照样绿，直到资产校验才暴露。
+          NAME=$(basename "$DMG")
+          cp "$DMG" "./$NAME"
+          xattr -cr "./$NAME" || true
+          echo "DMG_NAME=$NAME" >> "$GITHUB_ENV"
 
           echo "Staged:"
-          ls -la Rocktier.Write_aarch64.app.zip ./*.dmg
+          ls -la Rocktier.Write_aarch64.app.zip "./$NAME"
 
       # 同时上传 .dmg 与 .app.zip：
       #   · .dmg —— macOS 的原生分发形态，REQUIRED_ASSETS 要求的那个
