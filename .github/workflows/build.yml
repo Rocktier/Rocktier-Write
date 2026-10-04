@@ -231,6 +231,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
+          # 必须显式指定仓库：这个 job **没有 actions/checkout**（它不需要源码，
+          # 只需要读 Release 状态）。没有 checkout 就没有 git remote，gh 无从推断
+          # 仓库，会直接报「不是 Git 仓库」并退出非 0。
+          #
+          # ⚠️ 原来的 `2>/dev/null || true` 把这个错误吞了，于是 `assets` 永远是空串，
+          # 轮询 30 次全打印「waiting for uploads (0 so far)」，最后报六个 missing ——
+          # 报错信息完全指错方向，看起来像「GitHub 资产没上传上去」，
+          # 实际上传早在前两个 job 里完成了。
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           echo "Verifying release $TAG"
@@ -239,7 +248,11 @@ jobs:
           # Poll up to ~10 min with an initial settle delay before giving up.
           sleep 20
           for i in $(seq 1 30); do
-            assets=$(gh release view "$TAG" --json assets --jq '.assets[].name' 2>/dev/null || true)
+            # 保留 || true 仅为让轮询能继续重试（资产 API 确实会lag），
+            # 但把 stderr 打出来 —— 之前把它一并丢掉，导致真实的配置错误
+            # 被伪装成「资产还没上传」，排查方向完全跑偏。
+            assets=$(gh release view "$TAG" --json assets --jq '.assets[].name' || true)
+            echo "  poll #$i: $(printf '%s\n' "$assets" | grep -c . || true) asset(s) visible"
             ok=1
             for pat in $REQUIRED_ASSETS; do
               printf '%s\n' "$assets" | grep -Eq "$pat" || ok=0
