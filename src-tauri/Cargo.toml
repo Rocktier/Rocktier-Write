@@ -1,6 +1,6 @@
 [package]
 name = "rocktier-write"
-version = "1.3.0"
+version = "1.4.0"
 description = "Distraction-free long-form writing, DOCX support"
 authors = ["Rocktier"]
 edition = "2021"

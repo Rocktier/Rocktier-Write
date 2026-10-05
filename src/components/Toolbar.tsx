@@ -14,7 +14,6 @@ import { RecentMenu } from "./RecentMenu";
 type FocusMode = "off" | "paragraph" | "sentence";
 
 interface Props {
-  onToggleSidebar: () => void;
   onNew: () => void;
   onOpen: () => void;
   onSave: () => void;
@@ -49,7 +48,6 @@ const FOCUS_MODE_WORD: Record<FocusMode, () => string> = {
 };
 
 export const Toolbar = memo(function Toolbar({
-  onToggleSidebar,
   onNew,
   onOpen,
   onSave,
@@ -103,15 +101,12 @@ export const Toolbar = memo(function Toolbar({
     // 弹性的空白中间区 .toolbar-spacer 也带上属性，保证有可拖动的空白带。
     <header className="toolbar" data-tauri-drag-region>
       <div className="toolbar-side">
-        <button className="tbar-btn" onClick={onToggleSidebar} title={t("toolbar.toggleSidebar")} aria-label={t("toolbar.toggleSidebar")}>
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
-            <rect x="1.5" y="1.5" width="13" height="13" rx="2" />
-            <line x1="5.5" y1="1.5" x2="5.5" y2="14.5" />
-          </svg>
-        </button>
+        {/* 品牌位：favicon + 全名 + 家族红点（与官网字标句点同位）。
+            侧栏折叠不在这里——行业通用做法是侧栏与正文交界处的隐蔽箭头（App 的 .sidebar-edge）。 */}
         <div className="brand">
           <img className="brand-mark" src="/favicon.png" alt="" />
           <span className="brand-name">Rocktier<span className="tag">Write</span></span>
+          <span className="dot-live" aria-hidden="true" />
         </div>
 
         {/* ── Create：进来 ── */}
@@ -163,7 +158,6 @@ export const Toolbar = memo(function Toolbar({
       <div className="tgroup" role="group" aria-label={t("toolbar.groupOutput")}>
         <div className="split">
           <button className={`tbar-btn labeled split-main ${modified ? "has-action" : ""}`} onClick={onSave} title={t("toolbar.save")} aria-label={t("toolbar.save")}>
-            {modified && <span className="save-dot" aria-hidden="true" />}
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true">
               <path d="M3 1v5h8V1M3 14v-4h9v4" />
               <path d="M1 6v8h13V6" />

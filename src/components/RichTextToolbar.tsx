@@ -20,22 +20,28 @@
  * `aria-label`；`title` 与 `aria-label` 同源（都走 i18n 键），避免出现
  * 「悬停显示英文、屏幕阅读器念中文」这种分裂。
  */
-import { memo } from "react";
+import { memo, useEffect, useReducer } from "react";
 import type { Editor } from "@tiptap/core";
 import { t } from "../i18n";
+import { ViewSwitch } from "./ViewSwitch";
+import type { ViewMode } from "./ViewSwitch";
 
 interface Props {
   editor: Editor | null;
+  viewMode: ViewMode;
+  onViewChange: (mode: ViewMode) => void;
 }
 
 /** 工具栏用到的 i18n 键 —— 字面量联合，写错键名编译不过。 */
 type LabelKey =
   | "rt.toolbarLabel" | "rt.addLink" | "rt.removeLinkConfirm"
+  | "rt.undo" | "rt.redo"
   | "rt.bold" | "rt.italic" | "rt.strike" | "rt.h1" | "rt.h2"
   | "rt.bulletList" | "rt.orderedList" | "rt.taskList"
   | "rt.blockquote" | "rt.codeBlock" | "rt.link";
 
 type FormatId =
+  | "undo" | "redo"
   | "bold" | "italic" | "strike"
   | "h1" | "h2"
   | "bulletList" | "orderedList" | "taskList"
@@ -44,16 +50,23 @@ type FormatId =
 
 /** 每一项怎么「问编辑器当前状态」与「怎么执行」。
  *  两件事必须成对：只做执行不做状态查询，按钮就永远不高亮；
- *  只做状态查询不执行，按钮就是摆设。 */
+ *  只做状态查询不执行，按钮就是摆设。
+ *  undo/redo 没有「激活」语义，只有「可不可用」——用 disabled 字段。 */
 const ITEMS: ReadonlyArray<{
   id: FormatId;
   labelKey: LabelKey;
-  /** 返回该格式在当前选区是否生效 */
-  active: (e: Editor) => boolean;
+  /** 返回该格式在当前选区是否生效（undo/redo 无此语义） */
+  active?: (e: Editor) => boolean;
   run: (e: Editor) => void;
-  /** 需要重绘高亮的命令名（Tiptap 的事件名）；省略表示每次事务都刷新 */
-  redraw?: boolean;
+  /** 返回该按钮是否应当禁用（undo/redo 在栈空时置灰） */
+  disabled?: (e: Editor) => boolean;
 }> = [
+  { id: "undo", labelKey: "rt.undo",
+    run: (e) => e.chain().focus().undo().run(),
+    disabled: (e) => !e.can().undo() },
+  { id: "redo", labelKey: "rt.redo",
+    run: (e) => e.chain().focus().redo().run(),
+    disabled: (e) => !e.can().redo() },
   { id: "bold", labelKey: "rt.bold",
     active: (e) => e.isActive("bold"), run: (e) => e.chain().focus().toggleBold().run() },
   { id: "italic", labelKey: "rt.italic",
@@ -104,6 +117,10 @@ function Icon({ id }: { id: FormatId }) {
     strokeLinecap: "round" as const, strokeLinejoin: "round" as const,
   };
   switch (id) {
+    case "undo":
+      return <svg {...common}><path d="M3.5 6.5h6a3.5 3.5 0 0 1 0 7H6" /><path d="M6 3.5 3 6.5l3 3" /></svg>;
+    case "redo":
+      return <svg {...common}><path d="M12.5 6.5h-6a3.5 3.5 0 0 0 0 7H10" /><path d="M10 3.5l3 3-3 3" /></svg>;
     case "bold":
       return <svg {...common}><path d="M4.5 3h4a2.5 2.5 0 0 1 0 5h-4z" /><path d="M4.5 8h4.6a2.5 2.5 0 0 1 0 5H4.5z" /></svg>;
     case "italic":
@@ -129,7 +146,22 @@ function Icon({ id }: { id: FormatId }) {
   }
 }
 
-export const RichTextToolbar = memo(function RichTextToolbar({ editor }: Props) {
+export const RichTextToolbar = memo(function RichTextToolbar({ editor, viewMode, onViewChange }: Props) {
+  /* active/禁用状态要跟选区与文档状态实时走 —— 编辑器实例本身不变（memo 会把它
+     挡住），必须显式订阅 Tiptap 的 transaction 事件触发重绘。此前没有订阅，
+     按钮高亮停在第一次渲染的状态（暗病，本轮修复）。 */
+  const [, bump] = useReducer((x: number) => x + 1, 0);
+  useEffect(() => {
+    if (!editor) return;
+    const h = () => bump();
+    editor.on("transaction", h);
+    editor.on("selectionUpdate", h);
+    return () => {
+      editor.off("transaction", h);
+      editor.off("selectionUpdate", h);
+    };
+  }, [editor]);
+
   // 编辑器未挂载时渲染空条：宁可短暂空白，也不要渲染一排点了没反应的按钮
   if (!editor) return <div className="rt-toolbar" aria-hidden="true" />;
 
@@ -138,9 +170,15 @@ export const RichTextToolbar = memo(function RichTextToolbar({ editor }: Props) 
        早先图省事填了 t("rt.bold")，屏幕阅读器会念「加粗，工具栏」——
        语义反了。 */
     <div className="rt-toolbar" role="toolbar" aria-label={t("rt.toolbarLabel")}>
+      {/* 视图开关并入格式条行首（2026-10-05）：此前开关绝对定位浮在容器上，
+          正好压住格式条前几个按钮——这就是「Rich/Edit/Preview 挡住富文本按钮」
+          的根因。并入后同一行从左到右：开关 | 撤销重做 | 格式。 */}
+      <ViewSwitch viewMode={viewMode} onChange={onViewChange} />
+      <span className="rt-sep" aria-hidden="true" />
       {ITEMS.map((item) => {
         const label = t(item.labelKey);
-        const on = item.active(editor);
+        const on = item.active ? item.active(editor) : false;
+        const off = item.disabled ? item.disabled(editor) : false;
         return (
           <button
             key={item.id}
@@ -150,7 +188,8 @@ export const RichTextToolbar = memo(function RichTextToolbar({ editor }: Props) 
             // 点了「加粗」之后光标丢失，无法继续输入 —— 这是格式条最常见的坑。
             onMouseDown={(ev) => ev.preventDefault()}
             onClick={() => item.run(editor)}
-            aria-pressed={on}
+            disabled={off}
+            aria-pressed={item.active ? on : undefined}
             aria-label={label}
             title={label}
           >

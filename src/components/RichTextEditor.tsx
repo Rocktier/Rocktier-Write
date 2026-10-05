@@ -39,6 +39,7 @@ import { RichTextFindReplace } from "./RichTextFindReplace";
 import { SlashMenu } from "./SlashMenu";
 import { extractFrontmatter } from "../services/markdown";
 import { t } from "../i18n";
+import type { ViewMode } from "./ViewSwitch";
 
 /**
  * 编辑器实例的上下文 —— 格式条（RichTextToolbar）靠它下发命令。
@@ -58,6 +59,9 @@ export function useRichText(): Editor | null {
 interface Props {
   /** 完整 markdown 原文（含 frontmatter）—— 与 CodeMirror 侧共用同一份。 */
   content: string;
+  /** 视图开关并入富文本格式条行首（App 只在 rich 模式挂载本组件的可见态）。 */
+  viewMode: ViewMode;
+  onViewChange: (mode: ViewMode) => void;
   onChange: (content: string) => void;
   /** 粘贴图片事件上抛：App 负责落盘，Tiptap 这边只负责把图片插进文档。 */
   onPasteImage?: (mime: string, base64Data: string) => void;
@@ -70,6 +74,8 @@ interface Props {
 
 export function RichTextEditor({
   content,
+  viewMode,
+  onViewChange,
   onChange,
   onPasteImage,
   onCursorMove,
@@ -186,8 +192,8 @@ export function RichTextEditor({
   }, [editor]);
 
   return (
-    <RichTextCtx.Provider value={editor}>
-      <RichTextToolbar editor={editor} />
+      <RichTextCtx.Provider value={editor}>
+        <RichTextToolbar editor={editor} viewMode={viewMode} onViewChange={onViewChange} />
       {/* 查找替换必须挂在 Provider **内部**：它靠 useRichText() 取 editor 实例。
           挂在外面会拿到 null —— 而 null 时组件渲染成「点不动的空壳」，
           正好是查找功能最坏的失败形态。 */}

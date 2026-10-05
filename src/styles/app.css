@@ -28,6 +28,9 @@
   justify-content: space-between;
   height: var(--toolbar-h);
   padding: 0 12px;
+  /* macOS Overlay 标题栏：红绿灯落在 webview 左上角，品牌位需要让出安全区。
+     Windows 无该 env，回落 12px，视觉与此前完全一致。 */
+  padding-left: max(12px, env(titlebar-area-x, 12px));
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   position: relative;
@@ -242,14 +245,8 @@ html.is-mac .toolbar {
 
 .tbar-btn .state.on { background: var(--accent); color: var(--on-accent); }
 
-/* 未保存：墨点住在 Save 词前，不再飘在图标上 */
-.save-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--red);
-  flex-shrink: 0;
-}
+/* 未保存状态不再用红点（用户 2026-10-05：Save 旁的墨点莫名其妙）——
+   状态栏的 Draft saved / Unsaved 文案是唯一事实来源。 */
 
 .tbar-btn.labeled {
   width: auto;
@@ -798,6 +795,52 @@ html.is-mac .toolbar {
   scrollbar-width: none;
 }
 .rt-toolbar::-webkit-scrollbar { height: 0; }
+
+/* 视图开关并入格式条行首后的分隔线 */
+.rt-sep {
+  width: 1px;
+  height: 18px;
+  flex: none;
+  background: var(--border-strong);
+  margin: 0 6px;
+}
+
+/* 品牌名右侧的家族红点（对齐官网字标句点；动画与尺寸来自 tokens.css 的 .dot-live） */
+.brand .dot-live {
+  margin-left: 2px;
+}
+
+/* 侧栏折叠箭头：住在目录区与正文的交界，平时隐形，悬停/键盘聚焦显形（2026-10-05）。
+   取代原先钉在工具栏最左侧的折叠按钮——品牌位（favicon+全名+红点）保持最高优先级。 */
+.sidebar-edge {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 6;
+  width: 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-normal) var(--ease), color var(--dur-normal) var(--ease);
+}
+.sidebar-edge:hover,
+.sidebar-edge:focus-visible {
+  opacity: 1;
+  color: var(--text-primary);
+}
+.sidebar-edge svg { transition: transform var(--dur-normal) var(--ease); }
+/* 展开时箭头朝左（收起）；收起时翻成朝右（展开） */
+.sidebar-edge.open svg { transform: scaleX(-1); }
 
 .rt-btn {
   display: inline-flex;

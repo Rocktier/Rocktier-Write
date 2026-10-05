@@ -828,7 +828,6 @@ export default function App() {
     <div className="app-shell">
       <Toolbar
         words={stats.words}
-        onToggleSidebar={() => setSidebar((v) => !v)}
         onNew={doNew}
         onOpen={doOpen}
         onSave={doSave}
@@ -925,7 +924,22 @@ export default function App() {
         />
         </aside>
         <main className="editor-container">
-          <ViewSwitch viewMode={viewMode} onChange={setViewMode} />
+          {/* 侧栏折叠箭头：行业通用做法——住在目录区与正文区的交界，
+              悬停/键盘聚焦才显形；点它折叠/展开。工具栏左上角不再放折叠键，
+              品牌位（favicon+全名+红点）保持最高优先级。 */}
+          <button
+            className={`sidebar-edge ${sidebar ? "open" : ""}`}
+            onClick={() => setSidebar((v) => !v)}
+            title={t("toolbar.toggleSidebar")}
+            aria-label={t("toolbar.toggleSidebar")}
+            aria-expanded={sidebar}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="6.5,1.5 3,5 6.5,8.5" />
+            </svg>
+          </button>
+          {/* 富文本模式下开关并入格式条行首（见 RichTextToolbar）；源码/预览仍浮在容器左上 */}
+          {viewMode !== "rich" && <ViewSwitch viewMode={viewMode} onChange={setViewMode} />}
           {/* 查找替换按视图分流：源码视图用 CodeMirror 那份（挂在 .editor-pane-wrap
               内部、靠 window.__cmView 定位选区），富文本视图用 RichTextFindReplace
               （挂在 Provider 内部、靠 Context 取 editor 实例）。 */}
@@ -958,6 +972,8 @@ export default function App() {
           <div className={`rich-pane-wrap ${viewMode !== "rich" ? "hidden" : ""}`}>
             <RichTextEditor
               content={activeDoc.content}
+              viewMode={viewMode}
+              onViewChange={setViewMode}
               onChange={(content) => {
                 lastTypeRef.current = Date.now();
                 setActiveDoc((d) => ({ ...d, content, modified: true }));
