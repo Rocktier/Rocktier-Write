@@ -1014,8 +1014,8 @@ pub fn run() {
             import_docx_data,
             export_docx,
             license_status,
-machine_fingerprint,
-            store_receipt
+            machine_fingerprint,
+            store_receipt,
         ])
         .on_menu_event(|app, event| {
             // ⌘Q / 应用菜单「退出」不能用 PredefinedMenuItem::quit：它直接 app.exit()，
