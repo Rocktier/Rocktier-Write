@@ -152,6 +152,10 @@
 
 .md-viewer .task-list-item-checkbox {
   margin-right: 0.5em;
+  /* 16px 视觉尺寸：2026-10-16 UX 审计实测浏览器默认 13px，正文内联控件
+     （label/整行可点），与 GitHub / VS Code 渲染态一致。 */
+  width: 16px;
+  height: 16px;
 }
 
 /* ── Nested List Indentation (checkbox-based hierarchy) ─────────────

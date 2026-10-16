@@ -595,13 +595,16 @@ html.is-mac .toolbar {
 
 /* ── Editor ────────────────────────────────────────────────────── */
 
+/* 视图切换是 rt-toolbar 的**行首常驻项**（JSX 里就是第一个子元素），
+   参与 flex 行内布局 —— 曾经写成 position:absolute + z-index，飘在格式
+   按钮上层，实测把首行 6 个 rt-btn 盖住 31%~68%（2026-10-16 UX 审计），
+   盖住的按钮点不到。窄面板时整条 toolbar 横向滚动，这里 flex-shrink:0
+   保证它不被压扁。 */
 .view-switch {
-  position: absolute;
-  top: 10px;
-  left: 16px;
-  z-index: 4;
   display: flex;
   gap: 2px;
+  flex-shrink: 0;
+  margin-right: 2px;
   padding: 2px;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
@@ -609,7 +612,7 @@ html.is-mac .toolbar {
 }
 
 .view-switch-btn {
-  padding: 4px 16px;
+  padding: 6px 16px;
   border: none;
   border-radius: var(--radius-pill);
   background: none;
@@ -617,6 +620,9 @@ html.is-mac .toolbar {
   font-size: var(--fs-xs);
   font-weight: 600;
   font-family: var(--font-sans);
+  /* 24px 命中区（2026-10-16 UX 审计实测 21px 高） */
+  min-height: 24px;
+  box-sizing: border-box;
   cursor: pointer;
   transition: color var(--dur-fast), background var(--dur-fast);
 }
@@ -918,6 +924,13 @@ html.is-mac .toolbar {
    但它挂在 .rich-pane-wrap 内、是 flex 子项，故需要自己占一行。 */
 .rich-pane-wrap .find-replace {
   flex: none;
+}
+
+/* 查找替换输入框：`.fr-input` 此前只有类名钩子、无任何样式规则（浏览器默认
+   22px 高），2026-10-16 UX 审计实测命中区不足。 */
+.fr-input {
+  min-height: 24px;
+  box-sizing: border-box;
 }
 
 .rich-editor {
@@ -1367,7 +1380,7 @@ html.is-mac .toolbar {
 .status-bar {
   display: flex;
   align-items: center;
-  height: 24px;
+  height: 28px;
   padding: 0 12px;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
@@ -1409,6 +1422,9 @@ html.is-mac .toolbar {
   border: 1px solid transparent;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
+  /* 24px 命中区（2026-10-16 UX 审计实测 18px 高） */
+  min-height: 24px;
+  box-sizing: border-box;
   font-size: var(--fs-xs);
   color: var(--text-tertiary);
   cursor: pointer;
@@ -1428,9 +1444,12 @@ html.is-mac .toolbar {
   margin-left: 4px;
   background: none;
   border: none;
-  padding: 0 2px;
+  padding: 2px 4px;
   font: inherit;
   font-size: var(--fs-xs);
+  /* 24px 命中区（2026-10-16 UX 审计实测 18px 高） */
+  min-height: 24px;
+  box-sizing: border-box;
   color: var(--text-secondary);
   cursor: pointer;
 }
