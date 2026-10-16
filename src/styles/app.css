@@ -636,6 +636,14 @@ html.is-mac .toolbar {
   color: var(--bg-primary);
 }
 
+/* 源码/预览两态里本组件是 .editor-container（纵向 flex）的直接子项 —— 默认
+   align-self:stretch 会把胶囊拉成整行宽的边框条（2026-10-17 headless 实测
+   w=1038px）。收窄为内容宽、靠左站自己的行；富文本态它住在 rt-toolbar
+   （横向 flex）里，不受此规则影响。 */
+.editor-container > .view-switch {
+  align-self: flex-start;
+}
+
 .editor-container {
   flex: 1;
   display: flex;
