@@ -596,7 +596,10 @@ fn build_app_menu(app: &tauri::AppHandle, lang: &str) -> tauri::Result<()> {
     // 购买页面上写着"打开应用 → License → 输入激活码"，所以应用里必须真有一个能到
     // 那儿的入口（授权胶囊在已激活/商店版下会隐藏，帮助菜单是常驻入口）。
     let license_i = MenuItem::with_id(app, "license", tr(lang, "License…", "许可与激活…", "ライセンス…", "라이선스…", "Licence…", "Lizenz…", "Licencia…", "Licença…"), true, None::<&str>)?;
-    let help_menu = Submenu::with_items(app, tr(lang, "Help", "帮助", "ヘルプ", "도움말", "Aide", "Hilfe", "Ayuda", "Ajuda"), true, &[&license_i, &site_i, &mail_i])?;
+    // 检查更新：只 emit "check-updates"，联网由前端 services/updates.ts 做 ——
+    // 应用启动时不检查，只有用户点这里或右下角的版本号才发那一次请求。
+    let update_i = MenuItem::with_id(app, "check-updates", tr(lang, "Check for Updates…", "检查更新…", "アップデートを確認…", "업데이트 확인…", "Nach Updates suchen…", "Buscar actualizaciones…", "Verificar atualizações…", "التحقق من التحديثات…"), true, None::<&str>)?;
+    let help_menu = Submenu::with_items(app, tr(lang, "Help", "帮助", "ヘルプ", "도움말", "Aide", "Hilfe", "Ayuda", "Ajuda"), true, &[&update_i, &license_i, &site_i, &mail_i])?;
 
     let menu = Menu::with_items(
         app,

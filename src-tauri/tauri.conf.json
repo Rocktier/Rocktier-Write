@@ -83,20 +83,11 @@
         "enable": true,
         "scope": ["**"]
       },
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http: asset: http://asset.localhost; font-src 'self' data:; connect-src 'self' https://github.com https://objects.githubusercontent.com https://rocktier.com; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'self'"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http: asset: http://asset.localhost; font-src 'self' data:; connect-src 'self' https://github.com https://objects.githubusercontent.com https://rocktier.com https://api.github.com; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'self'"
     }
   },
   "plugins": {
     "dialog": null,
-    "fs": null,
-    "updater": {
-      "windows": {
-        "installMode": "passive"
-      },
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk1NURDQ0U4NjMxOUQzMzgKUldRNDB4bGo2TXhkbGVHdktxc3ZhV3cwMEo4VXBZTWpFYldZeXFOK05DWkVZZVJuQ1EzTGhrcGkK",
-      "endpoints": [
-        "https://github.com/Rocktier/Rocktier-Write/releases/latest/download/latest.json"
-      ]
-    }
+    "fs": null
   }
 }
