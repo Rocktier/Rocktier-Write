@@ -479,6 +479,7 @@ fn clear_recovery(app: tauri::AppHandle, path: String) -> Result<(), String> {
 /// Menu label in the current UI language. Order matches `i18n.ts`: en, zh, ja,
 /// ko, fr, de, es, pt. The native menu previously only had zh/en pairs — every
 /// other interface language got an English menu bar (W-P1-07, 准则 §17).
+#[allow(clippy::too_many_arguments)] // 8 门语言表驱动的固有形状：拆包只会把复杂度推给 39 个调用点
 fn tr(
     lang: &str,
     en: &'static str,
