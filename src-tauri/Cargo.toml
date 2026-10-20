@@ -1,6 +1,6 @@
 [package]
 name = "rocktier-write"
-version = "1.4.6"
+version = "1.4.7"
 description = "Distraction-free long-form writing, DOCX support"
 authors = ["Rocktier"]
 edition = "2021"
@@ -24,15 +24,16 @@ serde_json = "1.0"
 base64 = "0.22"
 # DOCX import/export (pure-Rust, no Office deps)
 docx-rs = "0.4"
-# Auto-updater（仅商店外渠道；MAS 构建用 mas feature 排除）
-tauri-plugin-updater = { version = "2", optional = true }
+# 没有 tauri-plugin-updater：更新走 src/services/updates.ts 的手动检查，
+# 插件与 tauri.conf.json 的 plugins.updater 段必须同生同死（见 lib.rs 注释）。
 # 授权回执的 Ed25519 离线验签（license.rs，FAMILY-LICENSE.md §2）
 ed25519-dalek = "2"
 
 [features]
-default = ["custom-protocol", "tauri-plugin-updater"]
+default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
-# Mac App Store 构建：沙盒启用、剔除自更新（App Store 渠道不允许自更新）
+# Mac App Store 构建：沙盒启用（App Store 渠道本就不允许自更新，而我们已经
+# 全局不做自更新，所以这里只剩沙盒相关的差异）
 mas = []
 
 # Size- and startup-optimized release binary

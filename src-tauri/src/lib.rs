@@ -984,9 +984,11 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init());
-    // MAS 渠道不允许自更新：updater 仅在非 mas 构建注册
-    #[cfg(not(feature = "mas"))]
-    let app = app.plugin(tauri_plugin_updater::Builder::new().build());
+    // 刻意不注册 updater 插件：更新只做「告诉用户有新版本 + 给下载页链接」
+    // （src/services/updates.ts），不做静默下载自替换。
+    // ⚠️ 它和 tauri.conf.json 的 plugins.updater 段必须同生同死：配置段删了
+    // 而插件还注册，Tauri 会反序列化到 null 直接 panic，应用起不来
+    // （v1.4.6 起不来就是这个原因，与 Compressor v0.1.9 同一个病）。
     let app = app
         .setup(|app| {
             app.manage(Ready(AtomicBool::new(false)));
