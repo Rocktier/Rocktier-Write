@@ -19,8 +19,9 @@ import { RichTextEditor } from "./components/RichTextEditor";
 import type { ViewMode } from "./components/ViewSwitch";
 import { FrontmatterPanel } from "./components/FrontmatterPanel";
 import { LicenseDialog } from "./components/LicenseDialog";
+import { UpdateDialog } from "./components/UpdateDialog";
 import { licenseStatus, onLicenseExpired, isLicenseExpiredError, revalidateLicence, type LicenseInfo } from "./services/license";
-import { checkForUpdates, currentVersion, type UpdateResult } from "./services/updates";
+import { checkForUpdates, currentVersion, type UpdateResult, type UpdateState } from "./services/updates";
 import { useTheme } from "./hooks/useTheme";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
@@ -44,14 +45,10 @@ const VIEW_MODE_KEY = "rocktier.write.view-mode";
 const VIEW_MODE_KEY_LEGACY = "rocktier-write-view-mode";
 const TYPEWRITER_KEY = "rocktier.write.typewriter";
 const TYPEWRITER_KEY_LEGACY = "rocktier-write-typewriter";
-const UPDATE_CHECKED_KEY = "rocktier.write.updateCheckedAt";
+const RECENT_MAX = 5;
 
 /** 打包时写死，与 tag 同源 —— 不会出现系统里装着新版本而代码里写着旧版本的错位。 */
 const APP_VERSION = currentVersion();
-
-type UpdateState = "idle" | "checking" | "uptodate" | "available" | "failed";
-
-const RECENT_MAX = 5;
 // Untitled documents have no path; recovery entries are keyed per-tab id so
 // three unsaved drafts no longer overwrite each other into a single slot.
 const UNTITLED_PREFIX = "__untitled__:";
@@ -243,11 +240,9 @@ export default function App() {
      这是「除非你要求，应用不会联网」这条承诺的落点。 */
   const [updateState, setUpdateState] = useState<UpdateState>("idle");
   const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
-  const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(() => {
-    const raw = localStorage.getItem(UPDATE_CHECKED_KEY);
-    const n = raw ? Number(raw) : 0;
-    return n > 0 ? n : null;
-  });
+  /* 结果框的开合。只由菜单「检查更新…」打开 —— 右下角常驻入口已移除
+     （fixed 定位不稳定，容易盖住底部内容，Compressor v0.1.10 实测复现）。 */
+  const [updateOpen, setUpdateOpen] = useState(false);
   const updateChecking = useRef(false);
 
   /* 检查更新。**只有这里会触发联网检查** —— 右下角入口与帮助菜单共用。
@@ -259,8 +254,6 @@ export default function App() {
     try {
       const result = await checkForUpdates();
       setUpdateResult(result);
-      setLastCheckedAt(result.checkedAt);
-      try { localStorage.setItem(UPDATE_CHECKED_KEY, String(result.checkedAt)); } catch { /* 隐私模式下忽略 */ }
       setUpdateState(result.hasUpdate ? "available" : "uptodate");
       /* 顺带吊销复检：同一次点击、同一承诺（只在点击时联网）。revoked → 清回执，
          授权状态回到未激活并弹激活对话框（openLicense 内含 refreshLicense）。 */
@@ -628,7 +621,7 @@ export default function App() {
           case "toggle-sidebar": setSidebar((v) => !v); break;
           case "toggle-theme": cycleTheme(); break;
           case "license": openLicense(); break;
-          case "check-updates": void runUpdateCheck(); break;
+          case "check-updates": setUpdateOpen(true); void runUpdateCheck(); break;
           /* 菜单「切换预览」在三态下：不在预览就去预览，在预览就回**富文本**。
            * 原来二态时是 edit↔preview 互换；现在「另一个编辑视图」是 rich ——
            * 从预览回源码视图不符合直觉（用户按的是「预览」，不是「源码」）。 */
@@ -1056,41 +1049,16 @@ export default function App() {
         license={license}
         onLicenseClick={openLicense}
       />
-      {/* 更新检查入口。固定右下角，不去动 StatusBar 的接口 —— 点击才联网：
-          启动时、工作中、后台都不检查，见 services/updates.ts 头注。 */}
-      <div className={`update-corner${updateState === "available" ? " has-update" : ""}`}>
-        <button
-          type="button"
-          className="update-line"
-          onClick={() => void runUpdateCheck()}
-          disabled={updateState === "checking"}
-          title={t("update.privacyNote")}
-        >
-          <span className="update-ver">v{APP_VERSION}</span>
-          <span className="update-sep" aria-hidden="true">·</span>
-          <span className="update-action">
-            {updateState === "checking" ? t("update.checking") : t("update.check")}
-          </span>
-        </button>
-        <div className="update-note" role="status" aria-live="polite">
-          {updateState === "uptodate" && t("update.upToDate")}
-          {updateState === "failed" && t("update.failed")}
-          {updateState === "available" && updateResult && (
-            <button
-              type="button"
-              className="update-get"
-              onClick={() => void invoke("open_url", { url: updateResult.url }).catch(() => {})}
-              title={t("update.available", { v: updateResult.latest })}
-            >
-              {t("update.download", { v: updateResult.latest })}
-            </button>
-          )}
-          {updateState === "idle" &&
-            t("update.lastChecked", {
-              date: lastCheckedAt ? formatCheckedAt(lastCheckedAt) : t("update.never"),
-            })}
-        </div>
-      </div>
+      {/* 更新检查：入口在帮助菜单「检查更新…」，结果弹 UpdateDialog。
+          右下角常驻悬浮入口已移除（fixed 定位不稳定，容易盖住底部内容）。 */}
+      {updateOpen && (
+        <UpdateDialog
+          state={updateState}
+          result={updateResult}
+          currentVersion={APP_VERSION}
+          onClose={() => setUpdateOpen(false)}
+        />
+      )}
       {licenseOpen && (
         <LicenseDialog
           info={license}
@@ -1110,16 +1078,4 @@ export default function App() {
       )}
     </div>
   );
-}
-
-/**
- * 「上次检查」的时间戳格式化。跟随界面语言 —— documentElement.lang
- * 由 i18n 模块维护（中文界面下是 zh-CN），避免中英混排。
- */
-function formatCheckedAt(ts: number): string {
-  try {
-    return new Date(ts).toLocaleDateString(document.documentElement.lang || "en");
-  } catch {
-    return new Date(ts).toISOString().slice(0, 10);
-  }
 }
