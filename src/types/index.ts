@@ -12,7 +12,7 @@ export const WELCOME_DOCUMENT = `# The Art of Focus
 
 ## Why Write?
 
-Every great work begins with a single sentence. Rocktier Write gives you the space to find it — no distractions, no formatting decisions, just your words.
+A blank page, and nothing between you and it. No distractions, no formatting decisions, just your words.
 
 ## How to Use This Document
 
