@@ -1,7 +1,6 @@
 # Rocktier Write — CI build & release
-# macOS aarch64 dmg (Apple Silicon only; Intel <5% share, macOS Tahoe drops Intel)
-# Windows MSI (WiX) for direct download
-# Windows MSIX (Microsoft Store) via @choochmeque/tauri-windows-bundle
+# macOS dmg for Apple Silicon and Intel; Windows MSI (WiX) for direct download;
+# Windows MSIX via @choochmeque/tauri-windows-bundle.
 
 name: Build & Release
 
@@ -15,11 +14,24 @@ permissions:
   contents: write
 
 jobs:
-  # ── macOS (Apple Silicon only) ─────────────────────────────────────────
+  # ── macOS (Apple Silicon + Intel) ──────────────────────────────────────
   # Ad-hoc signing: Tauri passes APPCLE_SIGNING_IDENTITY="" → bundles .app
   # with ad-hoc signature so unsigned dmgs don't trigger Gatekeeper on load.
   build-macos:
-    runs-on: macos-latest
+    name: macOS (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            arch: aarch64
+            target: aarch64-apple-darwin
+            filearch: arm64
+          - runner: macos-15-intel
+            arch: x64
+            target: x86_64-apple-darwin
+            filearch: x86_64
+    runs-on: ${{ matrix.runner }}
     env:
       # Empty signing identity = ad-hoc signing (no Apple Developer cert needed)
       APPLE_SIGNING_IDENTITY: "-"
@@ -34,15 +46,16 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-darwin
+          targets: ${{ matrix.target }}
 
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: "src-tauri -> target"
+          key: ${{ matrix.arch }}
 
       - run: npm ci
 
-      - name: Build (Tauri macOS aarch64)
+      - name: Build (Tauri macOS ${{ matrix.arch }})
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -55,18 +68,19 @@ jobs:
           releaseBody: "Rocktier Write release."
           releaseDraft: true
           prerelease: false
-          args: "--target aarch64-apple-darwin"
+          args: "--target ${{ matrix.target }}"
 
       # Verify the bundle was ad-hoc signed & strip any inherited quarantine xattr
       - name: Verify + clean bundle
         run: |
           set -e
-          APP=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/macos -name "*.app" -print -quit)
+          APP=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/macos" -name "*.app" -print -quit)
           [ -z "$APP" ] && { echo "::error::.app not found"; exit 1; }
+          file "$APP/Contents/MacOS/"* | tee /dev/stderr | grep -q '${{ matrix.filearch }}'
           echo "Signing status:"
           codesign -dv "$APP" 2>&1 || true
           xattr -cr "$APP"
-          DMG=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -name "*.dmg" -print -quit)
+          DMG=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" -name "*.dmg" -print -quit)
           # Tauri 在 targets:"all" 下确实会产出 .dmg（这一步一直能找到它），
           # 但此前**从不把它上传** —— 而 REQUIRED_ASSETS 却要求 `\.dmg$`。
           # 于是资产校验永远不通过，tag 发版卡在最后一步（2026-10-04 首次撞上：
@@ -103,11 +117,11 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           set -e
-          APP=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/macos -name "*.app" -print -quit)
+          APP=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/macos" -name "*.app" -print -quit)
           [ -z "$APP" ] && { echo "::error::.app not found"; exit 1; }
-          ditto -c -k --keepParent "$APP" "Rocktier.Write_aarch64.app.zip"
+          ditto -c -k --keepParent "$APP" "Rocktier.Write_${{ matrix.arch }}.app.zip"
 
-          DMG=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -name "*.dmg" -print -quit)
+          DMG=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" -name "*.dmg" -print -quit)
           if [ -z "$DMG" ]; then
             echo "::error::.dmg not found — 检查 tauri.conf.json 的 bundle.targets（应为 all 或含 dmg）"
             exit 1
@@ -125,7 +139,7 @@ jobs:
           echo "DMG_NAME=$NAME" >> "$GITHUB_ENV"
 
           echo "Staged:"
-          ls -la Rocktier.Write_aarch64.app.zip "./$NAME"
+          ls -la "Rocktier.Write_${{ matrix.arch }}.app.zip" "./$NAME"
 
       # 同时上传 .dmg 与 .app.zip：
       #   · .dmg —— macOS 的原生分发形态，REQUIRED_ASSETS 要求的那个
@@ -139,7 +153,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           draft: true
           files: |
-            Rocktier.Write_aarch64.app.zip
+            Rocktier.Write_${{ matrix.arch }}.app.zip
             ${{ env.DMG_NAME }}
           generate_release_notes: false
 
@@ -240,7 +254,7 @@ jobs:
     permissions:
       contents: write
     env:
-      REQUIRED_ASSETS: '\.dmg$ \.app\.zip$ \.msi$ \.exe$ \.msix$ \.msixbundle$'
+      REQUIRED_ASSETS: '_aarch64\.dmg$ _x64\.dmg$ _aarch64\.app\.zip$ _x64\.app\.zip$ \.msi$ \.exe$ \.msix$ \.msixbundle$'
     steps:
       - name: Verify assets then publish
         env:
