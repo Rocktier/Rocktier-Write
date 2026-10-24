@@ -55,13 +55,53 @@ jobs:
 
       - run: npm ci
 
+      # bundle_dmg.sh 是 **flaky** 的：v1.4.10 的 x64 腿首次构建挂在
+      # `failed to run bundle_dmg.sh`，同一提交什么都不改、直接重跑 job 即过
+      # （aarch64 腿同时首次就过）。Tauri 的 dmg 打包内部用 AppleScript 编排
+      # Finder 图标布局，拿不到 GUI session 时 AppleEvent 会超时（-1712）——
+      # 偶发而非必现，所以解法是**重试**，不是换配方。
+      #
+      # 重试用 continue-on-error + failure() 补救步骤实现，而不是把
+      # tauri-action 换成手写 npm run tauri build：后者会丢掉 tauri-action
+      # 顺带做的 updater 签名与 app.tar.gz 资产。第一次失败不终止 job，
+      # 第二次再失败才算真失败。
       - name: Build (Tauri macOS ${{ matrix.arch }})
+        id: tauri_build
+        continue-on-error: true
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
           # Inherit ad-hoc signing env from job level
+        with:
+          tagName: ${{ github.ref_type == 'tag' && 'v__VERSION__' || '' }}
+          releaseName: "Rocktier Write v__VERSION__"
+          releaseBody: "Rocktier Write release."
+          releaseDraft: true
+          prerelease: false
+          args: "--target ${{ matrix.target }}"
+
+      # bundle_dmg.sh 失败时可能留下已挂载的读写镜像（rw.*.dmg），
+      # 不 detach 掉会让重试撞在同一个残留上。
+      - name: Clean stale DMG mounts before retry
+        if: steps.tauri_build.outcome == 'failure'
+        run: |
+          set -uo pipefail
+          hdiutil info 2>/dev/null | awk '/\/Volumes\// {print $NF}' \
+            | grep -i rocktier | while read -r m; do
+                echo "detaching $m"; hdiutil detach "$m" -force || true
+              done
+          rm -rf "src-tauri/target/${{ matrix.target }}/release/bundle/dmg"
+          echo "cleaned"
+
+      - name: Retry build (bundle_dmg.sh flake)
+        if: steps.tauri_build.outcome == 'failure'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
           tagName: ${{ github.ref_type == 'tag' && 'v__VERSION__' || '' }}
           releaseName: "Rocktier Write v__VERSION__"
