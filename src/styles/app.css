@@ -956,6 +956,16 @@ html.is-mac .toolbar {
   width: 100%;
 }
 
+/* 编辑区本体是 contenteditable（Tiptap 把 attributes.class 挂在 ProseMirror
+   根节点上），聚焦时会命中 global.css 的全局 :focus-visible 焦点环
+   （2px var(--accent-brand) = 品牌红）—— 整个内容区被一圈大红框包住，
+   日/夜间都难看。文本编辑器的焦点指示就是光标本身，这里显式关掉；
+   焦点环继续对工具栏按钮、输入框等控件生效。 */
+.rich-editor:focus,
+.rich-editor:focus-visible {
+  outline: none;
+}
+
 /* ProseMirror 自己会给 contenteditable 加 outline / white-space，
    两处都要覆盖，否则聚焦时有一圈蓝边，且长行不换行。 */
 .rich-editor .ProseMirror {
