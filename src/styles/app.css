@@ -225,6 +225,19 @@ html.is-mac .toolbar {
   cursor: pointer;
   border-top-right-radius: var(--radius-sm);
   border-bottom-right-radius: var(--radius-sm);
+  position: relative;
+}
+
+/* 高 28px 达标、宽 16px 不达标：视觉不变，::after 左右各补 4px 到 24×28
+   （WCAG 2.5.8；2026-10-25 审计 D-78 实测 "Open Recent"/"Save as" 16×28）。 */
+.split-caret::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 28px;
+  transform: translate(-50%, -50%);
 }
 
 .split-caret:hover, .split-caret[aria-expanded="true"] { color: var(--text-primary); background: var(--accent-muted); }
@@ -566,6 +579,20 @@ html.is-mac .toolbar {
   border: none;
   cursor: pointer;
   transition: background 0.15s;
+  position: relative;
+}
+
+/* 视觉 16px 不变，::after 补足 24×24 命中区（WCAG 2.5.8；2026-10-25 审计 D-78
+   实测 8 处 16×16）。手法与家族 .icon-btn 的 40px 命中扩展一致，尺寸取 24 ——
+   章节行高 ~31px，再大会与相邻行重叠。 */
+.chapter-set-goal::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
 }
 
 .chapter-set-goal:hover {
@@ -852,6 +879,17 @@ html.is-mac .toolbar {
   opacity: 1;
   color: var(--text-primary);
 }
+/* 宽 16px 不达标（高 56px 达标）：视觉不变，::after 右侧外扩到 24×56
+   （WCAG 2.5.8；2026-10-25 审计 D-78 实测 "Chapters" 16×56）。
+   只向右扩 —— 左侧是窗口边缘，外扩无意义。 */
+.sidebar-edge::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 100%;
+}
 .sidebar-edge svg { transition: transform var(--dur-normal) var(--ease); }
 /* 展开时箭头朝左（收起）；收起时翻成朝右（展开） */
 .sidebar-edge.open svg { transform: scaleX(-1); }
@@ -939,6 +977,22 @@ html.is-mac .toolbar {
 .fr-input {
   min-height: 24px;
   box-sizing: border-box;
+}
+
+/* 查找替换条关闭钮：× 视觉不变，::after 补足 24×24 命中区（WCAG 2.5.8；
+   2026-10-25 审计 D-78 实测 16×16）。源码视图（FindReplace.tsx 的 FRBtn）
+   与富文本视图（RichTextFindReplace.tsx）共用此类。 */
+.find-replace .fr-close {
+  position: relative;
+}
+.find-replace .fr-close::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
 }
 
 .rich-editor {
@@ -1742,19 +1796,8 @@ html.is-mac .toolbar {
    License（家族 L6）：状态栏授权胶囊 + 许可与激活对话框
    ═══════════════════════════════════════════════════════════════════ */
 
-/* 状态栏胶囊：低调，过期时转警示色（点击打开许可对话框） */
-.status-license {
-  background: none;
-  border: none;
-  padding: 0 4px;
-  font: inherit;
-  font-size: var(--fs-xs);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.status-license:hover { color: var(--text-primary); }
-.status-license.expired { color: var(--warn); }
+/* 状态栏胶囊（点击打开许可对话框）：样式已收编为母版 tokens.css 的
+   .badge-license（2026-10-25 审计 D-78），本地不再保留视觉定义。 */
 
 .license-overlay {
   position: fixed;

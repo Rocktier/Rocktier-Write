@@ -14,14 +14,16 @@ interface FRBtnProps {
   children: React.ReactNode;
   bordered?: boolean;
   active?: boolean;
+  className?: string;
 }
 
-const FRBtn = memo(function FRBtn({ onClick, disabled, title, children, bordered, active }: FRBtnProps) {
+const FRBtn = memo(function FRBtn({ onClick, disabled, title, children, bordered, active, className }: FRBtnProps) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       title={title}
+      className={className}
       style={{
         border: bordered ? "1px solid var(--border, rgba(255,255,255,0.06))" : "none",
         background: active ? "var(--accent, rgba(255,255,255,0.1))" : "transparent",
@@ -158,7 +160,7 @@ export const FindReplace = memo(function FindReplace({ onClose }: Props) {
         <FRBtn onClick={doReplaceAll} disabled={!has} title={t("find.replaceAllTitle")} bordered>
           {t("find.replaceAll")}
         </FRBtn>
-        <FRBtn onClick={onClose} title={t("find.closeTitle")}>×</FRBtn>
+        <FRBtn onClick={onClose} title={t("find.closeTitle")} className="fr-close">×</FRBtn>
       </div>
     </div>
   );

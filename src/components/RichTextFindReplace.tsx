@@ -221,7 +221,7 @@ export const RichTextFindReplace = memo(function RichTextFindReplace({ onClose }
       <button type="button" onClick={replaceAll} disabled={!matches.length}>
         {t("find.replaceAll")}
       </button>
-      <button type="button" onClick={onClose} aria-label={t("find.closeTitle")}>×</button>
+      <button type="button" className="fr-close" onClick={onClose} aria-label={t("find.closeTitle")}>×</button>
     </div>
   );
 });
