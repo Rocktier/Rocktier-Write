@@ -29,15 +29,16 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import { Markdown } from "@tiptap/markdown";
 import Placeholder from "@tiptap/extension-placeholder";
 import RichTextExtensions from "../services/richTextExtensions";
-import {
-  protectEscapedChars,
-  unprotectEscapedChars,
-  restoreEscapedBackslashes,
-} from "../services/restoreBackslashes";
+import { protectEscapedChars } from "../services/restoreBackslashes";
 import { RichTextToolbar } from "./RichTextToolbar";
 import { RichTextFindReplace } from "./RichTextFindReplace";
 import { SlashMenu } from "./SlashMenu";
 import { extractFrontmatter } from "../services/markdown";
+import {
+  composeContent,
+  editorBodyToDisk,
+  syncRichTextContent,
+} from "../services/richTextSync";
 import { t } from "../i18n";
 import type { ViewMode } from "./ViewSwitch";
 
@@ -86,6 +87,8 @@ export function RichTextEditor({
 }: Props) {
   /** frontmatter 与正文分开存：编辑器只拿正文，改动时再拼回去。 */
   const fmRef = useRef<string | null>(null);
+  /** 本组件最近一次推给父组件的完整 markdown —— 用于识别「回声」。 */
+  const lastEmittedRef = useRef<string | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const pasteRef = useRef(onPasteImage);
@@ -94,9 +97,10 @@ export function RichTextEditor({
   const cursorRef = useRef(onCursorMove);
   cursorRef.current = onCursorMove;
 
-  /* ⚠️ 反斜杠还原：不要在别处直接调 editor.getMarkdown() 写盘 ——
+  /* ⚠️ 反斜杠还原：不要在本组件里直接调 editor.getMarkdown() 写盘 ——
    * 漏一处就等于该处会把翻倍的反斜杠写进用户文档（公式与转义静默变形）。
-   * 每一处都走 restoreEscapedBackslashes，实测记录见该文件。 */
+   * 统一走 `services/richTextSync.ts` 的 editorBodyToDisk，
+   * 实测记录见 `services/restoreBackslashes.ts`。 */
 
   // 首帧解析一次 frontmatter（后续改动靠 onUpdate 维护 fmRef）
   /* 原文另存一份：写盘时要用它判断「末尾换行原本有没有」，否则 Tiptap 抹掉的
@@ -138,12 +142,17 @@ export function RichTextEditor({
       },
     },
     onUpdate: ({ editor: e }) => {
-      // 正文变化时保留原有 frontmatter 原样输出，不让编辑器碰它
-      // 顺序固定：先 unprotect（把占位符换回「\x」）再折半还原。
-      // 反过来会让占位符里的字符也参与折半判断。
-      const raw = unprotectEscapedChars(e.getMarkdown());
-      const body = restoreEscapedBackslashes(raw, originalRef.current);
-      onChangeRef.current(fmRef.current ? `---\n${fmRef.current}\n---\n\n${body}` : body);
+      // 正文变化时保留原有 frontmatter 原样输出，不让编辑器碰它。
+      // 转换管线（unprotect → 折半还原 → 按原文补回末尾换行）在
+      // `services/richTextSync.ts` 的 editorBodyToDisk 里，与写盘路径同一份实现 ——
+      // 漏一处就等于该处会把翻倍的反斜杠写进用户文档。
+      const next = composeContent(editorBodyToDisk(e, originalRef.current), fmRef.current);
+      // 记下「本组件刚推上去的那一份」：父组件把它原样送回来时，
+      // 回灌 effect 能立刻认出这是回声，一个字都不用动。
+      // 没有这条回声识别，每次按键都会被当成「外部改了内容」→
+      // 整篇 setContent → 选区被甩到文末（见 richTextSync.ts 文件头）。
+      lastEmittedRef.current = next;
+      onChangeRef.current(next);
     },
     onSelectionUpdate: ({ editor: e }) => {
       if (!cursorRef.current) return;
@@ -161,33 +170,38 @@ export function RichTextEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 外部换文档（App 切 tab / 恢复草稿）时把富文本内容换掉。
-  // 刻意只在**内容不同**时 setContent：否则每次父级 re-render 都会重置选区与撤销栈。
+  // 外部换文档（App 切 tab / 恢复草稿 / 磁盘被外部改动）时把富文本内容换掉。
+  //
+  // ⚠️ 这里**不能**用「字符串不相等」判定「外部改了内容」。
+  // 同一篇文档有多种写法（磁盘原文带末尾换行、Tiptap 序列化不带；
+  // 表格重新对齐；转义写法不同），差一个字符就会被判成「内容变了」，
+  // 于是每次按键都触发整篇 setContent —— 而 setContent 内部是
+  // `tr.replaceWith(0, doc.content.size, nodes)`：**选区被映射到文末**
+  // （实测：光标在 11，按回车后跑到 20），撤销栈也被顶替一次
+  // （⌘Z 一次就把刚打的字和整篇重置一起撤掉，而不是只撤刚打的那个字）。
+  // 用户看到的现象就是「在段落中间按回车/退格，光标莫名其妙跳到文末」。
+  //
+  // 判定逻辑放在 `services/richTextSync.ts`（回声识别 + 结构比较），
+  // 那里有配套的回归测试。
   useEffect(() => {
     if (!editor) return;
-    const { body, frontmatter } = extractFrontmatter(content);
-    const next = body.replace(/\r\n/g, "\n");
-    // 两边都先还原再比较：编辑器里的状态是「已翻倍」的形态，
-    // 而传入的 content 是磁盘形态（单反斜杠）。不还原就比会永远不相等，
-    // 于是每次父级 re-render 都重置选区与撤销栈。
-    // 两边都先转成「编辑器形态」再比较：编辑器里存的是受保护+翻倍的状态，
-    // 而 content 是磁盘形态。不对齐就会永远不相等，于是每次父级 re-render
-    // 都重置选区与撤销栈 —— 用户切一下标签页就丢撤销历史。
+    const { frontmatter } = extractFrontmatter(content);
     originalRef.current = content;
-    const current = unprotectEscapedChars(editor.getMarkdown())
-      .replace(/\r\n/g, "\n");
-    if (current !== next) {
-      editor.commands.setContent(protectEscapedChars(next), { contentType: "markdown" });
-    }
+    // ⚠️ 顺序要紧：frontmatter 必须**先**落到 fmRef，再回灌内容。
+    // 因为 setContent 会同步触发 onUpdate（emitUpdate 默认 true），
+    // 而 onUpdate 用 fmRef 拼出上抛的完整 markdown —— fmRef 还是旧值的话，
+    // 切文档时会把上一个文档的 frontmatter 拼到新文档上。
     fmRef.current = frontmatter;
+    syncRichTextContent(editor, content, lastEmittedRef.current);
   }, [editor, content]);
 
   // 文档切换后重新上报一次，否则新文档的字数/状态栏会停在上一个
   useEffect(() => {
     if (editor) {
-      const raw = unprotectEscapedChars(editor.getMarkdown());
-      const body = restoreEscapedBackslashes(raw, originalRef.current);
-      onChangeRef.current(fmRef.current ? `---\n${fmRef.current}\n---\n\n${body}` : body);
+      const next = composeContent(editorBodyToDisk(editor, originalRef.current), fmRef.current);
+      // 同样记回声：这份是本组件推上去的，父组件送回来时不该被当成外部改动。
+      lastEmittedRef.current = next;
+      onChangeRef.current(next);
     }
   }, [editor]);
 
