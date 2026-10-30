@@ -471,25 +471,6 @@ export default function App() {
   }, [activeDoc, showToast, rememberPath, openLicense]);
 
   // ── Export ───────────────────────────────────────────────────────
-  const doExportDocx = useCallback(async () => {
-    try {
-      const { content, path } = activeDoc;
-      let targetPath = path ? path.replace(/\.[^.]+$/, ".docx") : null;
-      if (!targetPath) {
-        const { save: dialogSave } = await import("@tauri-apps/plugin-dialog");
-        const p = await dialogSave({ filters: [{ name: "DOCX Document", extensions: ["docx"] }], defaultPath: path ? baseName(path).replace(/\.[^.]+$/, "") : "untitled" });
-        if (!p) return;
-        targetPath = p;
-      }
-      await invoke("export_docx", { markdown: content, outputPath: targetPath });
-      showToast(t("toast.docxExported"), "success");
-    } catch (e) {
-      // 导出被授权闸门拦下 → 弹激活对话框；其余失败维持原 toast。
-      if (isLicenseExpiredError(e)) openLicense();
-      else showToast(t("toast.saveFailed"), "error");
-    }
-  }, [activeDoc, showToast, openLicense]);
-
   // Export PDF: switch to preview (browser print) and invoke native print.
   // The "Save as PDF" target is chosen by the user inside the print dialog.
   const doExportPdf = useCallback(async () => {
@@ -497,7 +478,7 @@ export default function App() {
     // give React a tick to paint preview, then open print dialog
     requestAnimationFrame(() => {
       // 打印失败（print_doc 起不来/被系统拒绝）至少要给个提示，不再静默吞错；
-      // 复用导出家族已有的 saveFailed 键（doExportDocx 同款），不新增硬编码英文。
+      // 复用导出家族已有的 saveFailed 键，不新增硬编码英文。
       // 被授权闸门拦下则弹激活对话框，不算打印失败。
       invoke("print_doc").catch((e) => {
         if (isLicenseExpiredError(e)) openLicense();
@@ -615,18 +596,12 @@ export default function App() {
           case "open": doOpen(); break;
           case "save": doSave(); break;
           case "save-as": doSaveAs(); break;
-          case "export-docx": doExportDocx(); break;
           case "export-pdf": doExportPdf(); break;
           case "find": toggleFindReplace(); break;
           case "toggle-sidebar": setSidebar((v) => !v); break;
           case "toggle-theme": cycleTheme(); break;
           case "license": openLicense(); break;
           case "check-updates": setUpdateOpen(true); void runUpdateCheck(); break;
-          /* 菜单「切换预览」在三态下：不在预览就去预览，在预览就回**富文本**。
-           * 原来二态时是 edit↔preview 互换；现在「另一个编辑视图」是 rich ——
-           * 从预览回源码视图不符合直觉（用户按的是「预览」，不是「源码」）。 */
-          case "toggle-preview": setViewMode((m) => (m === "preview" ? "rich" : "preview")); break;
-          case "toggle-frontmatter": setFmOpen((v) => !v); break;
           case "website":
             void invoke("open_url", { url: "https://rocktier.com/" }).catch(() => {});
             break;
@@ -638,7 +613,7 @@ export default function App() {
       })
       .then((fn) => { if (disposed) fn(); else unlisten = fn; });
     return () => { disposed = true; unlisten?.(); };
-  }, [doNew, doOpen, doSave, doSaveAs, doExportDocx, toggleFindReplace, openLicense, runUpdateCheck]);
+  }, [doNew, doOpen, doSave, doSaveAs, toggleFindReplace, openLicense, runUpdateCheck]);
 
   const shortcuts = useMemo(() => ({
     onSave: doSave, onSaveAs: doSaveAs, onNew: doNew, onOpen: doOpen,

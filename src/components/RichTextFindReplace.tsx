@@ -25,13 +25,13 @@ interface Props {
   onClose: () => void;
 }
 
-/** 大小写不敏感：与浏览器 / CodeMirror 的默认一致。 */
-function findMatches(doc: string, needle: string): number[] {
+/** matchCase 为 false 时按小写比对（与浏览器 / CodeMirror 的默认一致）。 */
+export function findMatches(doc: string, needle: string, matchCase: boolean): number[] {
   if (!needle) return [];
-  const hay = doc.toLowerCase();
-  const low = needle.toLowerCase();
+  const hay = matchCase ? doc : doc.toLowerCase();
+  const low = matchCase ? needle : needle.toLowerCase();
   const out: number[] = [];
-  let at = doc.indexOf(needle);
+  let at = hay.indexOf(low);
   while (at >= 0) {
     out.push(at);
     at = hay.indexOf(low, at + 1);
@@ -53,7 +53,7 @@ export const RichTextFindReplace = memo(function RichTextFindReplace({ onClose }
   const matches = useMemo(() => {
     if (!editor || !needle) return [];
     const doc = editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n");
-    return findMatches(doc, matchCase ? needle : needle);
+    return findMatches(doc, needle, matchCase);
   }, [editor, editor?.state.doc.content.size, needle, matchCase]);
 
   useEffect(() => {
