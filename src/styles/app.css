@@ -166,8 +166,11 @@ html.is-mac .topbar {
   border-radius: var(--radius-sm);
   color: var(--text-tertiary);
   position: relative;
+  /* 按下微缩的过渡与 Compressor `.primary` 同源：transform / --dur-fast / --ease。
+     减弱动态由 tokens.css 的 transition-duration: 0.01ms 兜底，缩放瞬时到位、不滑行。 */
   transition: background-color var(--dur-hover) var(--ease),
-    border-color var(--dur-hover) var(--ease), color var(--dur-hover) var(--ease);
+    border-color var(--dur-hover) var(--ease), color var(--dur-hover) var(--ease),
+    transform var(--dur-fast) var(--ease);
 }
 
 .tbar-btn:hover {
@@ -176,7 +179,11 @@ html.is-mac .topbar {
 }
 
 .tbar-btn:active {
-  background: var(--accent-hover);
+  /* 按下反馈走低强度底 + 家族微缩，而不是把底翻成近白/近黑；
+     后者会让文字（--text-tertiary）在按下瞬间消失。 */
+  background: var(--accent-muted);
+  color: var(--text-primary);
+  transform: scale(var(--press-scale));
 }
 
 .tbar-btn.active {
@@ -580,7 +587,7 @@ html.is-mac .topbar {
 }
 
 .chapter-set-goal:hover {
-  background: var(--accent-hover);
+  background: var(--accent-muted);
 }
 
 .chapter-goal-input {
@@ -1653,7 +1660,7 @@ html.is-mac .topbar {
 
 .tab-close:hover {
   opacity: 1;
-  background: var(--accent-hover);
+  background: var(--accent-muted);
 }
 
 .tab-new {
