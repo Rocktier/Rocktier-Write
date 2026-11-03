@@ -15,8 +15,10 @@ permissions:
 
 jobs:
   # ── macOS (Apple Silicon + Intel) ──────────────────────────────────────
-  # Ad-hoc signing: Tauri passes APPCLE_SIGNING_IDENTITY="" → bundles .app
-  # with ad-hoc signature so unsigned dmgs don't trigger Gatekeeper on load.
+  # 构建期签名：APPLE_SIGNING_IDENTITY="-" 让 tauri-action 先打 ad-hoc 签名
+  # （arm64 必须有签名才能加载）。发行签名在构建后的
+  # "Sign the app bundle, notarize it, and repack the DMG" 那步做：
+  # 配了 APPLE_CERT_P12 就换 Developer ID + 硬化运行时并公证，没配就保持 ad-hoc。
   build-macos:
     name: macOS (${{ matrix.arch }})
     strategy:
@@ -33,7 +35,8 @@ jobs:
             filearch: x86_64
     runs-on: ${{ matrix.runner }}
     env:
-      # Empty signing identity = ad-hoc signing (no Apple Developer cert needed)
+      # 构建期先 ad-hoc 签名（arm64 必须有签名才能加载）；真正的发行签名
+      # 在构建后的签名步骤完成，有证书就覆盖成 Developer ID 并公证。
       APPLE_SIGNING_IDENTITY: "-"
     steps:
       - uses: actions/checkout@v4
@@ -110,33 +113,125 @@ jobs:
           prerelease: false
           args: "--target ${{ matrix.target }}"
 
-      # Verify the bundle was ad-hoc signed & strip any inherited quarantine xattr
-      - name: Verify + clean bundle
+      # 发行签名。tauri-action 只做了 ad-hoc（见 job 级 APPLE_SIGNING_IDENTITY），
+      # 从浏览器下载的副本仍会被 Gatekeeper 拦（用户报「已阻止恶意软件」即此）。
+      # 配了 APPLE_CERT_P12 就换 Developer ID + 硬化运行时，重打 DMG 并公证；
+      # 没配就退回 ad-hoc 并在 CI 打 notice —— 产物与改动前一致，不假装已签名。
+      #
+      # 重打 DMG 是必须的：tauri-action 在上一步已经生成了 dmg，里面装的是
+      # ad-hoc 的 .app。重签后把 bundle/dmg 下的文件原地替换，后面
+      # "Stage macOS artifacts" 找到的就是签名后的那份，attach 时同名覆盖。
+      - name: Sign the app bundle, notarize it, and repack the DMG
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: |
-          set -e
+          set -euo pipefail
+          app=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/macos" \
+            -maxdepth 1 -name '*.app' -print -quit)
+          [ -n "$app" ] || { echo "::error::.app not found"; exit 1; }
+          dmg=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" \
+            -name '*.dmg' -print -quit)
+          [ -n "$dmg" ] || { echo "::error::.dmg not found"; exit 1; }
+
+          sign_app=(-s -)
+          if [ -n "${APPLE_CERT_P12:-}" ]; then
+            keychain="$RUNNER_TEMP/rocktier-signing.keychain-db"
+            echo "$APPLE_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+            security create-keychain -p "" "$keychain"
+            # 6 小时不锁：同一步里还要等 notarytool，15 分钟不活动锁会卡住后面的
+            # codesign（DMG 二次签名）。
+            security set-keychain-settings -lut 21600 "$keychain"
+            security unlock-keychain -p "" "$keychain"
+            security import "$RUNNER_TEMP/cert.p12" -k "$keychain" \
+              -P "$APPLE_CERT_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple: -k "" "$keychain" >/dev/null
+            security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+            identity=$(security find-identity -v -p codesigning "$keychain" \
+              | awk '/Developer ID Application/ {print $2; exit}')
+            if [ -z "$identity" ]; then
+              echo "::error::APPLE_CERT_P12 is set but contains no Developer ID Application identity."
+              exit 1
+            fi
+            echo "signing as $identity"
+            sign_app=(-s "$identity" --options runtime --timestamp --entitlements src-tauri/Entitlements.plist)
+          else
+            echo "::notice::No Developer ID certificate configured - ad-hoc signing. Downloaded copies will still be flagged by Gatekeeper."
+          fi
+
+          codesign "${sign_app[@]}" -fv --deep "$app"
+          codesign --verify --deep --strict "$app"
+          codesign -dvvv "$app" 2>&1 | grep 'Signature=' || true
+
+          work=$(mktemp -d)
+          hdiutil convert "$dmg" -format UDRW -o "$work/rw.dmg" -quiet
+          mnt="$work/m"
+          mkdir -p "$mnt"
+          hdiutil attach "$work/rw.dmg" -readwrite -nobrowse -mountpoint "$mnt" -quiet
+          rm -rf "$mnt/$(basename "$app")"
+          cp -R "$app" "$mnt/"
+          hdiutil detach "$mnt" -quiet
+          hdiutil convert "$work/rw.dmg" -format UDZO -o "$work/signed.dmg" -quiet
+          mv "$work/signed.dmg" "$dmg"
+          rm -rf "$work"
+
+          if [ -n "${APPLE_CERT_P12:-}" ]; then
+            codesign -s "$identity" --timestamp -fv "$dmg"
+            xcrun notarytool submit "$dmg" \
+              --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
+              --password "$APPLE_APP_PASSWORD" --wait
+            xcrun stapler staple "$dmg"
+            xcrun stapler validate "$dmg"
+            echo "HAS_CERT=true" >> "$GITHUB_ENV"
+
+            # 硬断言：本地 dmg / .app 必须是 Developer ID 且带 secure timestamp。
+            # 用 case 而不是 `| grep -q`：pipefail 下 grep 提前退出会让 codesign
+            # 收 SIGPIPE(141)，把「断言通过」误判成失败。
+            dmg_info=$(codesign -dv --verbose=4 "$dmg" 2>&1 || true)
+            app_info=$(codesign -dv --verbose=4 "$app" 2>&1 || true)
+            case "$dmg_info" in *"Authority=Developer ID Application"*) ;; *)
+              echo "::error::DMG signature is missing Developer ID authority"; exit 1 ;; esac
+            case "$dmg_info" in *"Timestamp="*) ;; *)
+              echo "::error::DMG signature has no secure timestamp"; exit 1 ;; esac
+            case "$app_info" in *"Authority=Developer ID Application"*) ;; *)
+              echo "::error::.app signature is missing Developer ID authority"; exit 1 ;; esac
+            case "$app_info" in *"Timestamp="*) ;; *)
+              echo "::error::.app signature has no secure timestamp"; exit 1 ;; esac
+
+            # Gatekeeper 兜底：dmg 是用户实际打开的载体，必须 accepted。
+            spctl -a -t open --context context:primary-signature -vv "$dmg" \
+              || { echo "::error::Gatekeeper rejected the notarized DMG"; exit 1; }
+            # .app 没有独立票据，spctl 走在线查询；这里只作 warning，避免离线误红。
+            spctl -a -vv "$app" \
+              || echo "::warning::spctl did not accept the .app (no embedded ticket by design - verify online)"
+          else
+            codesign -s - -fv "$dmg"
+            echo "HAS_CERT=false" >> "$GITHUB_ENV"
+            echo "::notice::ad-hoc build: signature assertions and spctl skipped (by design)."
+          fi
+          codesign -dvvv "$dmg" 2>&1 | grep 'Signature=' || true
+
+      - name: Verify bundle
+        run: |
+          set -euo pipefail
           APP=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/macos" -name "*.app" -print -quit)
           [ -z "$APP" ] && { echo "::error::.app not found"; exit 1; }
           file "$APP/Contents/MacOS/"* | tee /dev/stderr | grep -q '${{ matrix.filearch }}'
           echo "Signing status:"
-          codesign -dv "$APP" 2>&1 || true
-          xattr -cr "$APP"
+          codesign -dvvv "$APP" 2>&1 | grep -E 'Signature=|Authority=|TeamIdentifier=' || true
           DMG=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" -name "*.dmg" -print -quit)
           # Tauri 在 targets:"all" 下确实会产出 .dmg（这一步一直能找到它），
           # 但此前**从不把它上传** —— 而 REQUIRED_ASSETS 却要求 `\.dmg$`。
           # 于是资产校验永远不通过，tag 发版卡在最后一步（2026-10-04 首次撞上：
           # v1.2.0 的两端包都构建成功、已附加，publish 步骤失败）。
-          #
-          # 与 PDF 那套「签名后重打 dmg」不同：那里签名发生在构建**之后**
-          # （用 APPLE_CERT_P12 导入临时 keychain），dmg 里装的是签名前的 app，
-          # 所以必须重打。本仓是 `APPLE_SIGNING_IDENTITY="-"` 的 job 级变量，
-          # tauri-action 构建时就 ad-hoc 签名 .app 再打进 dmg —— 顺序已经是对的，
-          # 不需要重打。
+          # 该 dmg 已由上面的签名步骤原地重打，内含签过名的 .app。
           if [ -z "$DMG" ]; then
             echo "::error::.dmg not found — tauri.conf.json 的 bundle.targets 应为 all 或含 dmg"
             exit 1
           fi
-          xattr -cr "$DMG"
-          echo "✅ ad-hoc signing confirmed + quarantine cleared (app & dmg)"
 
       # 把 .dmg 与 .app 都**拷到工作目录**再 attach。
       #
@@ -183,19 +278,44 @@ jobs:
 
       # 同时上传 .dmg 与 .app.zip：
       #   · .dmg —— macOS 的原生分发形态，REQUIRED_ASSETS 要求的那个
-      #   · .app.zip —— 保留。.dmg 在未签名情况下 Gatekeeper 仍会拦（Q8 已定
-      #     暂不做代码签名），右键「打开」可绕过；.app.zip 给不愿挂载镜像的用户
-      #     一个直接解压就能用的选择。两者并存不增加维护成本（同一个构建产物）。
+      #   · .app.zip —— 保留。证书缺席时 .dmg 仍是 ad-hoc，Gatekeeper 会拦，
+      #     右键「打开」可绕过；.app.zip 给不愿挂载镜像的用户一个直接解压就能
+      #     用的选择。两者并存不增加维护成本（同一个构建产物）。
+      # Q8（本仓早先定案：暂不做代码签名）本轮按用户要求推翻 —— 证书配齐后
+      # 上面那步会走 Developer ID + 公证。
       - name: Attach macOS artifacts to release (tag push)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           draft: true
+          # softprops v2 默认 overwrite_files: true —— 这里会覆盖 tauri-action
+          # 同一 job 早先传上去的未重签 dmg（GitHub 把空格规整成点，名字一致）。
           files: |
             Rocktier.Write_${{ matrix.arch }}.app.zip
             ${{ env.DMG_NAME }}
           generate_release_notes: false
+
+      # 发布面校验：Attach 之后回读 Release，确认同名资产字节数与本地已签名 dmg 一致。
+      # 本地断言只能证明「签上了」，这一步才能证明「发布出去的就是签的那份」——
+      # tauri-action 在重签之前就把 ad-hoc dmg 传进了 draft release，
+      # 只靠 softprops 同名覆盖的假设，出问题时不留任何痕迹。
+      - name: Assert published DMG matches the signed one (tag push)
+        if: startsWith(github.ref, 'refs/tags/v') && env.HAS_CERT == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          size=$(stat -f%z "$DMG_NAME")
+          found=""
+          for n in "$DMG_NAME" "${DMG_NAME// /.}"; do
+            got=$(gh release view "${{ github.ref_name }}" --json assets \
+              --jq ".assets[] | select(.name == \"$n\") | .size" || true)
+            if [ -n "$got" ]; then found="$got"; break; fi
+          done
+          [ -n "$found" ] || { echo "::error::$DMG_NAME not found in release ${{ github.ref_name }}"; exit 1; }
+          [ "$found" = "$size" ] || { echo "::error::published dmg size $found != signed size $size"; exit 1; }
+          echo "::notice::published $DMG_NAME size=$found matches the signed copy"
 
   # ── Windows (MSI via WiX) ──────────────────────────────────────────────
   build-windows:
