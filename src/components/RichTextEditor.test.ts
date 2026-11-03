@@ -62,8 +62,6 @@ function Host({ initial }: { initial: string }) {
   const [content, setContent] = useState(initial);
   return createElement(RichTextEditor, {
     content,
-    viewMode: "rich" as const,
-    onViewChange: () => {},
     onChange: (c: string) => setContent(c),
   });
 }
