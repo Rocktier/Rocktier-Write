@@ -104,6 +104,9 @@ html.is-mac .topbar {
   padding-left: 14px;
   border-left: 1px solid var(--line);
   min-width: 0;
+  /* 内容再长也不越出自己的盒子：此前只有 min-width:0，子项溢出后直接画在右侧
+     按钮上（实测「Unsaved changes」压住「New」738 px²，文字对文字 165 px²）。 */
+  overflow: hidden;
 }
 
 .doc-title b {
@@ -114,12 +117,16 @@ html.is-mac .topbar {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* flex 子项默认最小尺寸 = min-content，nowrap 的长文件名因此顶不开这一栏；
+     归零后文档名先省略，状态词才不会被挤走。 */
+  min-width: 0;
 }
 
 .doc-title span {
   font-size: var(--fs-xs);
   color: var(--text-tertiary);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .topbar .toolbar-spacer {
@@ -262,6 +269,13 @@ html.is-mac .topbar {
 }
 
 .split-caret:hover, .split-caret[aria-expanded="true"] { color: var(--text-primary); background: var(--accent-muted); }
+
+/* 退让顺序：先让一句话自述（纯品牌表达，产品名就在它左边），再让文档名省略，
+   状态词永不覆盖右侧动作。缺这一档时 1100×760 的默认窗口落在 1025 断点之上，
+   doc-title 拿不到宽度，「Unsaved changes」直接画在「New」按钮上（实测 738 px²）。 */
+@media (max-width: 1240px) {
+  .brand-tag { display: none; }
+}
 
 /* 行宽紧张时收掉文字标签；产品名一句话随之隐藏，品牌图标仍在 */
 @media (max-width: 1025px) {

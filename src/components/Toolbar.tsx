@@ -115,8 +115,10 @@ export const Toolbar = memo(function Toolbar({
       </div>
 
       <div className="doc-title">
-        <b>{docName}</b>
-        {modified && <span>{t("toolbar.unsaved")}</span>}
+        <b title={docName}>{docName}</b>
+        {/* 顶栏只放短词，整句留给 title 与状态栏：1100×760 默认窗口里整句
+            「Unsaved changes」会把这一栏撑到溢出，文字直接画在「New」按钮上。 */}
+        {modified && <span title={t("toolbar.unsaved")}>{t("status.unsaved")}</span>}
       </div>
 
       <div className="toolbar-spacer" data-tauri-drag-region />
