@@ -822,6 +822,13 @@ export default function App() {
 
   const sessionMinutes = Math.max(1, Math.round((Date.now() - sessionStart) / 60000));
 
+  /* ── 2026-10-30 家族统一外壳（06-write 设计稿）─────────────────────
+     goalbar / desk-meta 的全部数字都来自真实状态：字数是 countWords 的结果，
+     目标是用户自己设的 wordGoal —— 没有目标就不渲染进度线，绝不编造百分比。 */
+  const goalPct = wordGoal > 0 ? Math.min(100, Math.round((stats.words / wordGoal) * 100)) : 0;
+  const goalLeft = wordGoal > 0 ? Math.max(0, wordGoal - stats.words) : 0;
+  const docName = activeDoc.path ? baseName(activeDoc.path) : t("doc.untitled");
+
   useEffect(() => {
     document.title = activeDoc.path ? `${baseName(activeDoc.path)} — Rocktier Write` : "Rocktier Write";
   }, [activeDoc.path]);
@@ -850,6 +857,7 @@ export default function App() {
         onSave={doSave}
         onSaveAsWithFormat={doSaveAsWithFormat}
         modified={activeDoc.modified}
+        docName={docName}
         themeMode={themeMode}
         onToggleTheme={cycleTheme}
         onFindReplace={toggleFindReplace}
@@ -875,15 +883,23 @@ export default function App() {
         onClose={closeDoc}
         onNew={doNew}
       />
+      {/* 家族签名：顶栏之下的一条 2px 进度细线，红点坐在当前进度处。
+          只在用户设了字数目标时出现 —— 没有目标就没有百分比可说。 */}
+      {wordGoal > 0 && (
+        <div
+          className="goalbar"
+          role="img"
+          aria-label={t("goalbar.aria", { pct: goalPct, n: stats.words, goal: wordGoal })}
+        >
+          <i className="fill" style={{ width: `${goalPct}%` }} />
+          <span className="goalbar-head" style={{ left: `${Math.min(96, Math.max(4, goalPct))}%` }}>
+            <span className="dot-live" aria-hidden="true" />
+            <b>{goalPct}%</b>
+          </span>
+        </div>
+      )}
       <div className="app-body" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
         <aside className={`sidebar ${sidebar ? "open" : "closed"}`}>
-          <WorkspaceStats
-            docCount={docs.length}
-            totalWords={totalWords}
-            totalGoal={wordGoal}
-            completedDocs={completedDocs}
-            goalDocs={wordGoal > 0 ? docs.length : 0}
-          />
         {fmOpen && (
           <FrontmatterPanel
             content={activeDoc.content}
@@ -939,8 +955,27 @@ export default function App() {
             jump();
           }}
         />
+        {/* 全稿统计按设计稿的 tree-foot 放在侧栏底部：大数字 + 一句人话。 */}
+        <WorkspaceStats
+          docCount={docs.length}
+          totalWords={totalWords}
+          totalGoal={wordGoal}
+          completedDocs={completedDocs}
+          goalDocs={wordGoal > 0 ? docs.length : 0}
+        />
         </aside>
         <main className="editor-container">
+          {/* 稿纸区顶条（设计稿 .deskbar）：视图三态开关 + 当前文档的字数目标进度。
+              三个视图共用同一份内容的同一开关，不再在源码/预览态漂在容器左上。 */}
+          <div className="deskbar">
+            <ViewSwitch viewMode={viewMode} onChange={setViewMode} />
+            <div className="deskbar-spacer" />
+            {wordGoal > 0 && (
+              <span className="desk-meta">
+                {t("desk.meta", { n: stats.words, goal: wordGoal, rest: goalLeft })}
+              </span>
+            )}
+          </div>
           {/* 侧栏折叠箭头：行业通用做法——住在目录区与正文区的交界，
               悬停/键盘聚焦才显形；点它折叠/展开。工具栏左上角不再放折叠键，
               品牌位（favicon+全名+红点）保持最高优先级。 */}
@@ -955,9 +990,7 @@ export default function App() {
               <polyline points="6.5,1.5 3,5 6.5,8.5" />
             </svg>
           </button>
-          {/* 富文本模式下开关并入格式条行首（见 RichTextToolbar）；源码/预览仍浮在容器左上 */}
-          {viewMode !== "rich" && <ViewSwitch viewMode={viewMode} onChange={setViewMode} />}
-          {/* 查找替换按视图分流：源码视图用 CodeMirror 那份（挂在 .editor-pane-wrap
+          {/* 视图开关已上移到 .deskbar（三个视图共用）；查找替换按视图分流：源码视图用 CodeMirror 那份（挂在 .editor-pane-wrap
               内部、靠 window.__cmView 定位选区），富文本视图用 RichTextFindReplace
               （挂在 Provider 内部、靠 Context 取 editor 实例）。 */}
           {cmReady && findReplaceOpen && viewMode === "source" && (
@@ -989,8 +1022,6 @@ export default function App() {
           <div className={`rich-pane-wrap ${viewMode !== "rich" ? "hidden" : ""}`}>
             <RichTextEditor
               content={activeDoc.content}
-              viewMode={viewMode}
-              onViewChange={setViewMode}
               onChange={(content) => {
                 lastTypeRef.current = Date.now();
                 setActiveDoc((d) => ({ ...d, content, modified: true }));

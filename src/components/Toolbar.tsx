@@ -1,11 +1,11 @@
 /**
- * Rocktier Write — toolbar.
+ * Rocktier Write — top bar（2026-10-30 家族统一，06-write 设计稿）。
  *
- * One visual grammar: icon + word for every action, grouped by verb with
- * hairline seams — Create (New, Open, Import) on the left with the brand,
- * Output (Save, PDF) and Tools (Find, Goal, Focus, Info, Theme) on the right.
- * The floating middle is gone: Focus lives in Tools, the status bar keeps the
- * fuller state copy, and Recent is a chevron on Open instead of a second clock.
+ * 品牌位（图标 + h1 产品名 + 一句话自述 + 家族红点）靠左，随后是 doc-title
+ * （文档名 + 未保存标记）。主操作只有一个：保存（实心 .primary，位置固定）；
+ * 其余动作全部降级为幽灵按钮，按动词分三组：Create（新建/打开/导入）、
+ * Output（保存/导出 PDF）、Tools（查找/目标/专注/打字机/信息/主题）。
+ * 最近文件是打开按钮上的小箭头，不另占一个入口。
  */
 import { memo, useState, useRef, useEffect } from "react";
 import { t } from "../i18n";
@@ -20,6 +20,8 @@ interface Props {
   onSaveAsWithFormat?: () => void;
   onImportDocx: () => void;
   modified: boolean;
+  /** 当前文档名（未保存过为「未命名」）——顶栏 doc-title 显示，绝不编造。 */
+  docName: string;
   themeMode: "auto" | "light" | "dark";
   onToggleTheme: () => void;
   onFindReplace: () => void;
@@ -54,6 +56,7 @@ export const Toolbar = memo(function Toolbar({
   onSaveAsWithFormat,
   onImportDocx,
   modified,
+  docName,
   themeMode,
   onToggleTheme,
   onFindReplace,
@@ -99,70 +102,78 @@ export const Toolbar = memo(function Toolbar({
     // data-tauri-drag-region：窗口标题栏为 Overlay+hiddenTitle，顶部条充当拖动区。
     // Tauri v2 只认带该属性的命中元素自身，子元素（按钮/输入框/菜单）点击不受影响；
     // 弹性的空白中间区 .toolbar-spacer 也带上属性，保证有可拖动的空白带。
-    <header className="toolbar" data-tauri-drag-region>
-      <div className="toolbar-side">
-        {/* 品牌位：favicon + 全名 + 家族红点（与官网字标句点同位）。
-            侧栏折叠不在这里——行业通用做法是侧栏与正文交界处的隐蔽箭头（App 的 .sidebar-edge）。 */}
-        <div className="brand">
-          <img className="brand-mark" src="/favicon.png" alt="" />
-          <span className="brand-name">Rocktier<span className="tag">Write</span></span>
-          <span className="dot-live" aria-hidden="true" />
-        </div>
+    //
+    // 2026-10-30 家族统一顶栏（06-write 设计稿）：品牌位 = 图标 + h1 产品名 +
+    // 一句话自述；随后是 doc-title（文档名 + 未保存标记）；主操作只有「保存」
+    // 一个（实心、位置固定在最右侧组首位），其余动作一律幽灵按钮降级。
+    <header className="topbar" data-tauri-drag-region>
+      <div className="brand">
+        <img className="brand-mark" src="/favicon.png" alt="" />
+        <h1 className="brand-name">Rocktier Write</h1>
+        <span className="brand-tag">{t("topbar.tagline")}</span>
+        <span className="dot-live" aria-hidden="true" />
+      </div>
 
-        {/* ── Create：进来 ── */}
-        <div className="tgroup" role="group" aria-label={t("toolbar.groupCreate")}>
-          <button className="tbar-btn labeled" onClick={onNew} title={t("toolbar.new")} aria-label={t("toolbar.new")}>
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
-              <line x1="7.5" y1="2" x2="7.5" y2="13" />
-              <line x1="2" y1="7.5" x2="13" y2="7.5" />
-            </svg>
-            <span className="tbar-label">{short(t("toolbar.new"))}</span>
-          </button>
-          <div className="split">
-            <button className="tbar-btn labeled split-main" onClick={onOpen} title={t("toolbar.open")} aria-label={t("toolbar.open")}>
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
-                <path d="M2 4h4l1.5 1.5H12a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
-              </svg>
-              <span className="tbar-label">{short(t("toolbar.open"))}</span>
-            </button>
-            <button
-              className="split-caret"
-              onClick={() => setRecentMenuOpen((v) => !v)}
-              title={t("recent.title")}
-              aria-label={t("recent.title")}
-              aria-haspopup="menu"
-              aria-expanded={recentMenuOpen}
-            >
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
-                <polyline points="1.5,3 4,5.5 6.5,3" />
-              </svg>
-            </button>
-            {recentMenuOpen && onOpenRecent && onClearRecent && (
-              <RecentMenuHost items={recentItems ?? []} onOpen={onOpenRecent} onClear={onClearRecent} onClose={() => setRecentMenuOpen(false)} />
-            )}
-          </div>
-          <button className="tbar-btn labeled" onClick={onImportDocx} title={t("toolbar.importDocx")} aria-label={t("toolbar.importDocx")}>
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="7.5" y1="12.5" x2="7.5" y2="3.5" />
-              <polyline points="5,5.5 7.5,2.5 10,5.5" fill="none" />
-              <line x1="2.5" y1="13" x2="12.5" y2="13" />
-            </svg>
-            <span className="tbar-label">{t("toolbar.import")}</span>
-          </button>
-        </div>
+      <div className="doc-title">
+        <b>{docName}</b>
+        {modified && <span>{t("toolbar.unsaved")}</span>}
       </div>
 
       <div className="toolbar-spacer" data-tauri-drag-region />
 
-      {/* ── Output：出去 ── */}
+      {/* ── Create：进来（幽灵按钮） ── */}
+      <div className="tgroup" role="group" aria-label={t("toolbar.groupCreate")}>
+        <button className="tbar-btn labeled" onClick={onNew} title={t("toolbar.new")} aria-label={t("toolbar.new")}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
+            <line x1="7.5" y1="2" x2="7.5" y2="13" />
+            <line x1="2" y1="7.5" x2="13" y2="7.5" />
+          </svg>
+          <span className="tbar-label">{short(t("toolbar.new"))}</span>
+        </button>
+        <div className="split">
+          <button className="tbar-btn labeled split-main" onClick={onOpen} title={t("toolbar.open")} aria-label={t("toolbar.open")}>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+              <path d="M2 4h4l1.5 1.5H12a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+            </svg>
+            <span className="tbar-label">{short(t("toolbar.open"))}</span>
+          </button>
+          <button
+            className="split-caret"
+            onClick={() => setRecentMenuOpen((v) => !v)}
+            title={t("recent.title")}
+            aria-label={t("recent.title")}
+            aria-haspopup="menu"
+            aria-expanded={recentMenuOpen}
+          >
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
+              <polyline points="1.5,3 4,5.5 6.5,3" />
+            </svg>
+          </button>
+          {recentMenuOpen && onOpenRecent && onClearRecent && (
+            <RecentMenuHost items={recentItems ?? []} onOpen={onOpenRecent} onClear={onClearRecent} onClose={() => setRecentMenuOpen(false)} />
+          )}
+        </div>
+        <button className="tbar-btn labeled" onClick={onImportDocx} title={t("toolbar.importDocx")} aria-label={t("toolbar.importDocx")}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="7.5" y1="12.5" x2="7.5" y2="3.5" />
+            <polyline points="5,5.5 7.5,2.5 10,5.5" fill="none" />
+            <line x1="2.5" y1="13" x2="12.5" y2="13" />
+          </svg>
+          <span className="tbar-label">{t("toolbar.import")}</span>
+        </button>
+      </div>
+
+      <div className="vsep" />
+
+      {/* ── Output：出去。保存是全屏唯一的主操作（实心），导出降级为幽灵。 ── */}
       <div className="tgroup" role="group" aria-label={t("toolbar.groupOutput")}>
         <div className="split">
-          <button className={`tbar-btn labeled split-main ${modified ? "has-action" : ""}`} onClick={onSave} title={t("toolbar.save")} aria-label={t("toolbar.save")}>
+          <button className="tbar-btn labeled split-main primary" onClick={onSave} title={t("toolbar.save")} aria-label={t("toolbar.save")}>
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true">
               <path d="M3 1v5h8V1M3 14v-4h9v4" />
               <path d="M1 6v8h13V6" />
             </svg>
-            <span className="tbar-label">{t("toolbar.save")}</span>
+            <span className="tbar-label">{short(t("toolbar.save"))}</span>
           </button>
           {onSaveAsWithFormat && (
             <button
@@ -192,7 +203,7 @@ export const Toolbar = memo(function Toolbar({
 
       <div className="vsep" />
 
-      {/* ── Tools ── */}
+      {/* ── Tools（幽灵按钮） ── */}
       <div className="tgroup" role="group" aria-label={t("toolbar.groupTools")}>
         <button className="tbar-btn labeled" onClick={onFindReplace} title={t("toolbar.find")} aria-label={t("toolbar.find")}>
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" aria-hidden="true">
@@ -234,7 +245,7 @@ export const Toolbar = memo(function Toolbar({
           <span className={`state ${focusMode !== "off" ? "on" : ""}`}>{FOCUS_MODE_WORD[focusMode]()}</span>
         </button>
 
-        {/* Typewriter：光标锁 40%。与 Focus 平级的独立开关 */}
+        {/* Typewriter：光标锁 40%。与 Focus 平级的独立开关（设计稿顶栏的「打字机」） */}
         <button
           className={`tbar-btn labeled ${typewriter ? "active" : ""}`}
           onClick={onToggleTypewriter}
@@ -247,7 +258,7 @@ export const Toolbar = memo(function Toolbar({
         </button>
 
         {hasFrontmatter && (
-          <button className={`tbar-btn ghost-ic ${frontmatterOpen ? "active" : ""}`} onClick={onToggleInfo} title={t("toolbar.info")} aria-label={t("toolbar.info")}>
+          <button className={`tbar-btn ${frontmatterOpen ? "active" : ""}`} onClick={onToggleInfo} title={t("toolbar.info")} aria-label={t("toolbar.info")}>
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
               <circle cx="7.5" cy="7.5" r="5.5" />
               <circle cx="7.5" cy="5" r="0.8" fill="currentColor" stroke="none" />

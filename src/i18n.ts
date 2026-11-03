@@ -81,6 +81,13 @@ const STRINGS = {
     "toolbar.statAria": "{n} words / {m} min read",
     "toolbar.importDocx": "Import DOCX",
     "toolbar.exportDocx": "Export DOCX",
+    /* 2026-10-30 家族统一顶栏（06-write 设计稿）：产品名后的一句话自述 */
+    "topbar.tagline": "Long-form writing",
+    /* 稿纸区顶条：当前文档的字数目标进度（数据全部来自真实状态） */
+    "desk.meta": "{n} / {goal} words · {rest} to go",
+    "goalbar.aria": "Word goal progress {pct}% — {n} of {goal} words",
+    "chapters.notStarted": "Not started",
+    "dashboard.summary": "{total} words total · goal {goal} · {pct}% done",
     "toolbar.setGoal": "Set word goal",
     "confirm.recover": "An unsaved draft was found. Restore it?",
     "confirm.recoverNamedCount": "({n} unsaved draft(s) in total.)",
@@ -258,6 +265,13 @@ const STRINGS = {
     "toolbar.statAria": "{n} 词 / {m} 分钟阅读",
     "toolbar.importDocx": "导入 DOCX",
     "toolbar.exportDocx": "导出 DOCX",
+    /* 2026-10-30 家族统一顶栏（06-write 设计稿）：产品名后的一句话自述 */
+    "topbar.tagline": "长篇与文档",
+    /* 稿纸区顶条：当前文档的字数目标进度（数据全部来自真实状态） */
+    "desk.meta": "{n} / {goal} 字 · 还差 {rest} 字",
+    "goalbar.aria": "字数目标进度 {pct}%，{n} / {goal} 字",
+    "chapters.notStarted": "未写",
+    "dashboard.summary": "全部 {total} 字 · 目标 {goal} · 已完成 {pct}%",
     "toolbar.setGoal": "设置字数目标",
     "confirm.recover": "检测到未保存的草稿，是否恢复？",
     "confirm.recoverNamedCount": "（本地另有 {n} 份未保存的草稿。）",

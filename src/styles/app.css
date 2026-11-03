@@ -1,8 +1,20 @@
 /* ═══════════════════════════════════════════════════════════════════
    ROCKTIER WRITE — App Layout & Components
-   Single-column writing with chapter tree sidebar and focus modes
-   Nothing OS family: dots, thin lines, monochrome, geometric
+   2026-10-30 家族统一重构（设计稿 06-write.html）：
+   顶栏（品牌 + 一句话 + doc-title + 唯一主操作）→ 2px 目标细线（红点骑线）
+   → 左章节树 / 右稿纸 → 状态栏（说人话）。全部颜色走家族令牌，深浅两档成立。
    ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 产品层别名：设计稿的纸面语汇映射到家族 L0 令牌（tokens.css 不得手改，
+      故别名住产品层；全部是 var() 引用，无写死色值）────────────────────── */
+:root {
+  --paper: var(--bg-primary);      /* 稿纸 */
+  --chrome: var(--bg-secondary);   /* 顶栏 / 状态栏的壳 */
+  --rail: var(--surface-2);        /* 章节树的轨 */
+  --desk: var(--surface-2);        /* 稿纸四周的桌面 */
+  --line: var(--border);
+  --line-strong: var(--border-hover);
+}
 
 .app-shell {
   display: flex;
@@ -18,67 +30,38 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  min-height: 0;
 }
 
-/* ── Toolbar ───────────────────────────────────────────────────── */
+/* ── Topbar（设计稿 .topbar）────────────────────────────────────── */
 
-.toolbar {
+.topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: var(--toolbar-h);
-  padding: 0 12px;
+  gap: 14px;
+  height: 52px;
+  padding: 0 16px;
   /* macOS Overlay 标题栏：红绿灯落在 webview 左上角，品牌位需要让出安全区。
-     Windows 无该 env，回落 12px，视觉与此前完全一致。 */
-  padding-left: max(12px, env(titlebar-area-x, 12px));
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+     Windows 无该 env，回落 16px。 */
+  padding-left: max(16px, env(titlebar-area-x, 16px));
+  background: var(--chrome);
+  border-bottom: 1px solid var(--line);
   position: relative;
   z-index: 20;
   flex-shrink: 0;
-  gap: 12px;
-  transition: background-color var(--dur-normal) var(--ease),
-             border-color var(--dur-normal) var(--ease);
+  user-select: none;
 }
 
-html.is-mac .toolbar {
+html.is-mac .topbar {
   padding-left: 70px;
-}
-
-.toolbar::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
-  pointer-events: none;
-}
-
-.toolbar-side,
-.toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  /* 产出与文档操作不许被压缩——压缩的下场是文字被裁。
-     富余空间由中间的弹性区让出。 */
-  flex-shrink: 0;
-}
-
-.toolbar-center {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  justify-content: center;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-right: 4px;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .brand-mark {
@@ -87,75 +70,97 @@ html.is-mac .toolbar {
   flex-shrink: 0;
 }
 
-/* Letter mark — 家族徽章母版：深色砖 + WR 双字母 + 左上对勾徽章 + 右上红点。
-   砖深色在两个主题下都不变，与 Dock 图标一致；发丝描边防其在近黑工具栏上消失。 */
-.brand-mark .brand-tile {
-  fill: #0a0a0a;
-  stroke: var(--border-strong);
-  stroke-width: 1;
-}
-
-.brand-mark .brand-letters {
-  fill: #ffffff;
-  font-family: var(--font-sans);
-}
-
-.brand-mark .brand-pip {
-  fill: var(--red);
-}
-
-.brand-mark .brand-badge {
-  fill: #ffffff;
-}
-
-/* 行宽紧张时 flex 会把可收缩的 svg 压到 0 宽 —— 图标凭空消失 */
-.tbar-btn svg {
-  flex-shrink: 0;
-}
-
-/* 用双类选择器压过后面 .tbar-btn 的固定 30px 宽，否则文字被裁 */
-.tbar-btn.export-btn {
-  width: auto;
-  min-width: 0;
-  padding: 0 9px;
-}
-
-.export-fmt {
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  font-family: var(--font-sans);
-}
-
-.brand-mark .brand-pip {
-  fill: var(--red);
-}
-
+/* 产品名即 h1（页面唯一的 h1）；右侧一句话自述说明这个软件干什么 */
 .brand-name {
+  margin: 0;
   font-size: var(--fs-base);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text-primary);
   white-space: nowrap;
+  pointer-events: none;
 }
 
-.brand-name .tag {
-  font-weight: 400;
+.brand-tag {
+  font-size: var(--fs-sm);
+  font-weight: 450;
   color: var(--text-tertiary);
-  margin-left: 2px;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
-/* Toolbar buttons */
+/* 品牌名右侧的家族红点（对齐官网字标句点；动画与尺寸来自 tokens.css 的 .dot-live） */
+.brand .dot-live {
+  margin-left: 2px;
+  pointer-events: none;
+}
+
+/* doc-title（设计稿）：当前文档名 + 未保存标记，与品牌位之间一条竖线 */
+.doc-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-left: 4px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+  min-width: 0;
+}
+
+.doc-title b {
+  font-weight: 550;
+  font-size: var(--fs-sm);
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-title span {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.topbar .toolbar-spacer {
+  flex: 1;
+  min-width: 24px;
+}
+
+/* 动词分组：组内 4px、组间靠 .vsep 分隔 */
+.tgroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.vsep {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+
+.tbar-btn svg {
+  flex-shrink: 0;
+}
+
+/* 顶栏按钮：设计稿 .btn.ghost —— 透明底、hover 显轨色；主操作另起 .primary */
 .tbar-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   width: 30px;
   height: 30px;
+  padding: 0;
   border-radius: var(--radius-sm);
   color: var(--text-tertiary);
   position: relative;
-  overflow: hidden;
+  transition: background-color var(--dur-hover) var(--ease),
+    border-color var(--dur-hover) var(--ease), color var(--dur-hover) var(--ease);
 }
 
 .tbar-btn:hover {
@@ -173,104 +178,28 @@ html.is-mac .toolbar {
   border: 1px solid var(--border-mid);
 }
 
-.tbar-btn.has-action {
-  color: var(--accent);
-  position: relative;
-}
-
-
-/* Stats pill in toolbar */
-/* Icon plus a word. An icon alone is a guess the user has to hover to check;
-   the ones that carry meaning say what they are. */
-/* ── Toolbar: verb groups ─────────────────────────────────────────
-   同一语法：图标 + 词；组间细分隔线；状态值住圆角芯片。 */
-.tgroup {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.toolbar-spacer { flex: 1; }
-
-.vsep {
-  width: 1px;
-  height: 18px;
-  background: var(--border);
-  margin: 0 8px;
-  flex-shrink: 0;
-}
-
-/* Open ▾ 拆分按钮：主体开文件，小箭头开最近列表 */
-.split {
-  display: inline-flex;
-  align-items: center;
-  position: relative;
-  border-radius: var(--radius-sm);
-}
-
-.split .tbar-btn:hover { background: none; color: var(--text-primary); }
-.split:hover { background: var(--accent-muted); }
-
-.split-main { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-
-.split-caret {
-  width: 16px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  border-top-right-radius: var(--radius-sm);
-  border-bottom-right-radius: var(--radius-sm);
-  position: relative;
-}
-
-/* 高 28px 达标、宽 16px 不达标：视觉不变，::after 左右各补 4px 到 24×28
-   （WCAG 2.5.8；2026-10-25 审计 D-78 实测 "Open Recent"/"Save as" 16×28）。 */
-.split-caret::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 24px;
-  height: 28px;
-  transform: translate(-50%, -50%);
-}
-
-.split-caret:hover, .split-caret[aria-expanded="true"] { color: var(--text-primary); background: var(--accent-muted); }
-
-/* 带状态的开关：状态值住芯片，激活时反色；字号与按钮小标签一致 */
-.tbar-btn .state {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  background: var(--accent-muted);
-  border-radius: var(--radius-xs);
-  padding: 1px 6px;
-  color: var(--text-primary);
-}
-
-/* 搜索高亮：常规匹配淡琥珀、当前匹配深一档（默认 CM 样式在两主题下都太隐身） */
-.cm-searchMatch { background: rgba(255, 177, 0, 0.30); }
-.cm-searchMatch-selected { background: rgba(255, 145, 0, 0.48); }
-
-.tbar-btn .state.on { background: var(--accent); color: var(--on-accent); }
-
-/* 未保存状态不再用红点（用户 2026-10-05：Save 旁的墨点莫名其妙）——
-   状态栏的 Draft saved / Unsaved 文案是唯一事实来源。 */
-
+/* 带文字的幽灵按钮：宽度随文字走 */
 .tbar-btn.labeled {
   width: auto;
   min-width: 0;
-  padding: 0 8px;
-  gap: 6px;
+  padding: 0 9px;
+}
+
+/* 全屏唯一的主操作：实心 accent 块（设计稿 .btn.primary = ink 反白） */
+.tbar-btn.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 500;
+}
+
+.tbar-btn.primary:hover {
+  background: var(--accent-hover);
+  color: var(--on-accent);
 }
 
 .tbar-label {
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: 550;
   font-family: var(--font-sans);
   white-space: nowrap;
   letter-spacing: 0.01em;
@@ -283,94 +212,63 @@ html.is-mac .toolbar {
   background: none;
 }
 
-/* Narrow: icon-only to stop buttons colliding. 1025px covers the full
-   Save + Find + Goal row without clipping. Brand name drops at the same
-   breakpoint; the brand icon stays. */
+/* 带状态的开关：状态值住芯片，激活时反色；字号与按钮小标签一致 */
+.tbar-btn .state {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  background: var(--accent-muted);
+  border-radius: var(--radius-xs);
+  padding: 1px 6px;
+  color: var(--text-primary);
+}
+
+.tbar-btn .state.on { background: var(--accent); color: var(--on-accent); }
+
+/* Open ▾ 拆分按钮：主体开文件，小箭头开最近列表 */
+.split {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  border-radius: var(--radius-sm);
+}
+
+.split .tbar-btn.split-main:hover { background: var(--accent-muted); }
+.split .tbar-btn.primary:hover { background: var(--accent-hover); }
+
+.split-caret {
+  width: 16px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  position: relative;
+}
+
+/* 高 28px 达标、宽 16px 不达标：视觉不变，::after 左右各补 4px 到 24×28
+   （WCAG 2.5.8）。 */
+.split-caret::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+}
+
+.split-caret:hover, .split-caret[aria-expanded="true"] { color: var(--text-primary); background: var(--accent-muted); }
+
+/* 行宽紧张时收掉文字标签；产品名一句话随之隐藏，品牌图标仍在 */
 @media (max-width: 1025px) {
   .tbar-label { display: none; }
   .brand-name { display: none; }
-  .toolbar { gap: 6px; padding: 0 8px; }
-}
-
-.tbar-btn.stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-  width: auto;
-  font-variant-numeric: tabular-nums;
-  cursor: default;
-}
-
-.tbar-btn.stat:hover {
-  background: none;
-  color: inherit;
-}
-
-.tbar-btn.stat .stat-num {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.tbar-btn.stat .stat-sep {
-  font-size: var(--fs-2xs);
-  color: var(--text-muted);
-}
-
-.tbar-btn.stat .stat-min {
-  font-size: var(--fs-xs);
-  color: var(--text-tertiary);
-}
-
-/* Focus mode button */
-.focus-btn {
-  gap: 4px;
-  width: auto;
-  padding: 0 10px;
-  font-size: var(--fs-xs);
-  font-weight: 500;
-}
-
-.focus-label {
-  font-size: var(--fs-xs);
-  color: inherit;
-  white-space: nowrap;
-}
-
-/* Goal pill in toolbar */
-.goal-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 22px;
-}
-
-.goal-track {
-  width: 48px;
-  height: 4px;
-  border-radius: var(--radius-xs);
-  background: var(--accent-muted);
-  overflow: hidden;
-}
-
-.goal-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: var(--radius-xs);
-  transition: width var(--dur-slow) var(--ease);
-}
-
-.goal-text {
-  font-size: var(--fs-2xs);
-  font-weight: 600;
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-}
-
-.goal-btn {
-  padding: 0 6px;
-  width: auto;
+  .brand-tag { display: none; }
+  .topbar { gap: 8px; padding-right: 8px; }
 }
 
 /* Inline goal input */
@@ -401,40 +299,115 @@ html.is-mac .toolbar {
   -moz-appearance: textfield;
 }
 
-/* ── Chapter Tree Sidebar ──────────────────────────────────────── */
+/* ── Goalbar（设计稿签名：顶栏之下 2px 进度细线，红点骑在进度处）────── */
 
-.chapter-tree {
-  width: 220px;
-  flex-shrink: 0;
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border);
+.goalbar {
+  position: relative;
+  height: 2px;
+  background: var(--line);
+  flex: none;
+  z-index: 3;
+}
+
+.goalbar .fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--accent);
+}
+
+.goalbar-head {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 17px;
+  padding: 0 6px 0 5px;
+  border-radius: 0 0 8px 8px;
+  border: 1px solid var(--line);
+  border-top: 0;
+  background: var(--bg-elevated);
+  white-space: nowrap;
+  /* 纯展示的百分比小牌，悬在正文顶上 17px —— 不挡第一行文字的点击与光标定位 */
+  pointer-events: none;
+}
+
+.goalbar-head .dot-live {
+  width: 8px;
+  height: 8px;
+  animation: dotpulse 3s var(--ease) infinite;
+}
+
+.goalbar-head b {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 搜索高亮：常规匹配淡琥珀、当前匹配深一档（默认 CM 样式在两主题下都太隐身）。
+   高亮是背景语义色，两档各自成立 —— 这两处是信息底色而非装饰，保留半透明琥珀。 */
+.cm-searchMatch { background: rgba(255, 177, 0, 0.30); }
+.cm-searchMatch-selected { background: rgba(255, 145, 0, 0.48); }
+
+/* ── Sidebar：章节树（设计稿 .tree）──────────────────────────────── */
+
+.sidebar {
+  width: 252px;
+  min-width: 252px;
+  background: var(--rail);
+  border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  transform: translateX(0);
-  transition: transform var(--dur-normal) var(--ease), width var(--dur-normal) var(--ease);
+  overflow: hidden;
+  transition: width 0.2s ease, min-width 0.2s ease, opacity 0.2s ease;
+}
+
+.sidebar.closed {
+  width: 0;
+  min-width: 0;
+  opacity: 0;
+  border-right: none;
+}
+
+/* nav.chapter-tree 铺满 sidebar（折叠由 .sidebar.closed 负责）；
+   FrontmatterPanel 打开时排在它上面。 */
+.chapter-tree {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
-.chapter-tree:not(.open) {
-  width: 0;
-  border-right-width: 0;
+.tree-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 14px 8px;
+  flex-shrink: 0;
 }
 
-.chapter-header {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+.tree-head h2 {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 550;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
 }
 
 .chapter-list {
   flex: 1;
   overflow-y: auto;
-  padding: 6px 4px;
+  padding: 0 8px 8px;
+  min-height: 0;
 }
 
 .chapter-empty {
@@ -445,124 +418,122 @@ html.is-mac .toolbar {
   line-height: 1.5;
 }
 
+/* 一行 = 序号 + 标题 + 字数；当前章反白 + 左缘竖条 */
+.chapter-row {
+  position: relative;
+  border-radius: var(--radius-sm);
+}
+
 .chapter-item {
-  flex: 1;
-  min-width: 0;
   display: block;
   width: 100%;
   text-align: left;
-  padding: 8px 12px 8px 12px;
-  font-size: var(--fs-base);
-  color: var(--text-tertiary);
+  border: 0;
+  background: transparent;
   border-radius: var(--radius-sm);
+  padding: 8px 9px 9px;
   cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: all var(--dur-fast);
-  background: none;
-  border-top: none;
-  border-right: none;
-  border-bottom: none;
+  transition: background-color var(--dur-hover) var(--ease);
 }
 
 .chapter-item:hover {
-  color: var(--text-primary);
+  background: var(--bg-card-hover);
 }
 
-.chapter-item.level-1 {
-  font-weight: 600;
-  font-size: var(--fs-base);
-  color: var(--text-secondary);
+.chapter-row[aria-current="true"] .chapter-item {
+  background: var(--bg-primary);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
-.chapter-item.level-2 {
-  padding-left: 18px;
-  font-size: var(--fs-sm);
-}
-
-/* ── Chapter row with meta (v1.1.x) ──────────────────────────────────── */
-
-.chapter-row {
+.chapter-item .row {
   display: flex;
-  align-items: center;
-  gap: 2px;
-  position: relative;
-  border-radius: var(--radius-sm);
-  padding-right: 6px;
-  transition: background var(--dur-fast);
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
 }
 
-.chapter-row:hover {
-  background: var(--accent-muted);
-}
-
-.chapter-row.current {
-  background: var(--accent-muted);
-}
-
-/* 内浮短竖条：不随圆角弯曲，悬在胶囊左缘内侧 */
-.chapter-row.current::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 7px;
-  bottom: 7px;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--accent);
-}
-
-.chapter-row.current .chapter-item {
-  color: var(--text-primary);
-}
-
-/* 选中行尾品牌红点（audit 7C-1 示范位；7E Phase 2 铺开更多选中态） */
-.chapter-row.current::after {
-  content: "";
-  flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent-brand);
-}
-
-.chapter-set-goal {
-  opacity: 0.35;
-  transition: opacity var(--dur-fast);
-}
-
-.chapter-row:hover .chapter-set-goal,
-.chapter-set-goal:focus-visible {
-  opacity: 1;
-}
-
-.chapter-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  font-size: var(--fs-2xs);
+.chapter-item .no {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
   color: var(--text-tertiary);
-}
-
-.chapter-words {
   font-variant-numeric: tabular-nums;
-  min-width: 28px;
-  text-align: right;
+  flex: none;
+  width: 14px;
 }
 
-.chapter-words.overflow {
+.chapter-item .name {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chapter-row[aria-current="true"] .name {
+  color: var(--text-primary);
+  font-weight: 550;
+}
+
+.chapter-item .num {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+/* 超出章节目标的字数给警示色（信息双通道：数字本身也变色，不只靠位置） */
+.chapter-item .num.overflow {
   color: var(--accent-warn);
   font-weight: 600;
 }
 
-.chapter-goal-badge {
-  background: var(--accent-muted);
-  color: var(--text-primary);
-  padding: 2px 4px;
+/* 章节内进度细线：仅设了目标的章节出现（无目标不画线，不编造进度） */
+.chapter-item .meter {
+  display: block;
+  height: 2px;
+  margin: 6px 0 0 22px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.chapter-item .meter i {
+  display: block;
+  height: 100%;
+  background: var(--text-tertiary);
+}
+
+.chapter-row[aria-current="true"] .meter i {
+  background: var(--accent);
+}
+
+/* 标题层级缩进（level 1 不缩进） */
+.chapter-item.level-2 { padding-left: 20px; }
+.chapter-item.level-3 { padding-left: 32px; }
+
+/* 设目标按钮：悬停行时在右缘显形（视觉 16px，::after 补足 24×24 命中区） */
+.chapter-meta {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  /* 不可见时也别吃点击：行右缘那 16px 会误触「设目标」 */
+  pointer-events: none;
+  transition: opacity var(--dur-fast);
+  background: var(--rail);
   border-radius: var(--radius-xs);
-  font-weight: 600;
+}
+
+/* 键盘 Tab 进按钮时 :focus-within 把它显形，保持可发现 */
+.chapter-row:hover .chapter-meta,
+.chapter-meta:focus-within {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .chapter-set-goal {
@@ -582,9 +553,8 @@ html.is-mac .toolbar {
   position: relative;
 }
 
-/* 视觉 16px 不变，::after 补足 24×24 命中区（WCAG 2.5.8；2026-10-25 审计 D-78
-   实测 8 处 16×16）。手法与家族 .icon-btn 的 40px 命中扩展一致，尺寸取 24 ——
-   章节行高 ~31px，再大会与相邻行重叠。 */
+/* 视觉 16px 不变，::after 补足 24×24 命中区（WCAG 2.5.8）。手法与家族
+   .icon-btn 的 40px 命中扩展一致，尺寸取 24 —— 章节行高 ~31px，再大会与相邻行重叠。 */
 .chapter-set-goal::after {
   content: "";
   position: absolute;
@@ -596,7 +566,6 @@ html.is-mac .toolbar {
 }
 
 .chapter-set-goal:hover {
-  opacity: 1;
   background: var(--accent-hover);
 }
 
@@ -611,47 +580,62 @@ html.is-mac .toolbar {
   border-radius: var(--radius-xs);
 }
 
-.chapter-item.level-3 {
-  padding-left: 30px;
-  font-size: var(--fs-sm);
+/* ── Desk：稿纸区（设计稿 .desk）────────────────────────────────── */
+
+.editor-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background: var(--desk);
+  min-width: 0;
 }
 
-.chapter-item.passed {
+/* 稿纸区顶条：视图三态开关（三视图共用）+ 当前文档的字数目标进度 */
+.deskbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--desk);
+  flex: none;
+}
+
+.deskbar-spacer { flex: 1; }
+
+.desk-meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
   color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 
-/* ── Editor ────────────────────────────────────────────────────── */
-
-/* 视图切换是 rt-toolbar 的**行首常驻项**（JSX 里就是第一个子元素），
-   参与 flex 行内布局 —— 曾经写成 position:absolute + z-index，飘在格式
-   按钮上层，实测把首行 6 个 rt-btn 盖住 31%~68%（2026-10-16 UX 审计），
-   盖住的按钮点不到。窄面板时整条 toolbar 横向滚动，这里 flex-shrink:0
-   保证它不被压扁。 */
+/* 视图三态开关（设计稿 .views）：方形分段控件，选中态反白 */
 .view-switch {
   display: flex;
   gap: 2px;
   flex-shrink: 0;
-  margin-right: 2px;
   padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--bg-secondary);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
 }
 
 .view-switch-btn {
-  padding: 6px 16px;
+  height: 24px;
+  padding: 0 9px;
   border: none;
-  border-radius: var(--radius-pill);
-  background: none;
-  color: var(--text-tertiary);
+  border-radius: calc(var(--radius-sm) - 3px);
+  background: transparent;
+  color: var(--text-secondary);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: 500;
   font-family: var(--font-sans);
-  /* 24px 命中区（2026-10-16 UX 审计实测 21px 高） */
-  min-height: 24px;
   box-sizing: border-box;
   cursor: pointer;
-  transition: color var(--dur-fast), background var(--dur-fast);
+  transition: background-color var(--dur-hover) var(--ease), color var(--dur-hover) var(--ease);
 }
 
 .view-switch-btn:hover {
@@ -660,108 +644,34 @@ html.is-mac .toolbar {
 
 .view-switch-btn.active {
   background: var(--accent);
-  color: var(--bg-primary);
+  color: var(--on-accent);
+  font-weight: 550;
 }
 
-/* 源码/预览两态里本组件是 .editor-container（纵向 flex）的直接子项 —— 默认
-   align-self:stretch 会把胶囊拉成整行宽的边框条（2026-10-17 headless 实测
-   w=1038px）。收窄为内容宽、靠左站自己的行；富文本态它住在 rt-toolbar
-   （横向 flex）里，不受此规则影响。 */
-.editor-container > .view-switch {
-  align-self: flex-start;
-}
-
-.editor-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-}
-
-/* ── Sidebar (v1.1.x) ───────────────────────────────────────────────── */
-
-.sidebar {
-  width: 240px;
-  min-width: 240px;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: width 0.2s ease, min-width 0.2s ease, opacity 0.2s ease;
-}
-
-.sidebar.closed {
-  width: 0;
-  min-width: 0;
-  opacity: 0;
-  border-right: none;
-}
-
-/* ── Workspace Stats (v1.1.x) ──────────────────────────────────────── */
+/* ── Workspace Stats：侧栏底部的 tree-foot（大数字 + 一句人话）───────── */
 
 .workspace-stats {
-  padding: 12px 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.ws-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-.ws-val {
-  font-weight: 600;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.ws-sub {
-  font-size: var(--fs-xs);
-  color: var(--text-tertiary);
-}
-
-.ws-goal {
-  margin-top: 6px;
+  margin-top: auto;
+  flex-shrink: 0;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
-.ws-progress {
-  height: 4px;
-  border-radius: var(--radius-xs);
-  background: var(--border);
-  overflow: hidden;
-}
-
-.ws-bar {
-  height: 100%;
-  background: var(--accent);
-  border-radius: var(--radius-xs);
-  transition: width var(--dur-slow) var(--ease);
-}
-
-.ws-goal-row {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: var(--fs-xs);
-}
-
-.ws-pct {
-  font-weight: 700;
-  color: var(--text-primary);
+.ws-big {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
-.ws-goal-target {
+.ws-cap {
+  font-size: var(--fs-xs);
   color: var(--text-tertiary);
+  line-height: 1.5;
 }
 
 /* 编辑与预览共用同一条居中阅读栏：同一份稿子，不该有两种边距。
@@ -828,28 +738,14 @@ html.is-mac .toolbar {
   gap: 2px;
   flex: none;
   padding: 4px 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--line);
+  background: var(--desk);
   /* 窄面板时横向滚动而不是换行：换行会把正文往下顶，编辑时视线一直在跳。
      overflow-x 让它可横向滚，但隐藏滚动条以免多一条视觉噪音。 */
   overflow-x: auto;
   scrollbar-width: none;
 }
 .rt-toolbar::-webkit-scrollbar { height: 0; }
-
-/* 视图开关并入格式条行首后的分隔线 */
-.rt-sep {
-  width: 1px;
-  height: 18px;
-  flex: none;
-  background: var(--border-strong);
-  margin: 0 6px;
-}
-
-/* 品牌名右侧的家族红点（对齐官网字标句点；动画与尺寸来自 tokens.css 的 .dot-live） */
-.brand .dot-live {
-  margin-left: 2px;
-}
 
 /* 侧栏折叠箭头：住在目录区与正文的交界，平时隐形，悬停/键盘聚焦显形（2026-10-05）。
    取代原先钉在工具栏最左侧的折叠按钮——品牌位（favicon+全名+红点）保持最高优先级。 */
@@ -998,7 +894,7 @@ html.is-mac .toolbar {
 .rich-editor {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 32px 40vh; /* 底部留白：滚到文末时最后一行能到视口中部，
+  padding: 40px 56px 40vh; /* 底部留白：滚到文末时最后一行能到视口中部，
                               否则光标贴着下边缘 —— 与源码视图同款体验 */
   font-family: var(--font);
   font-size: var(--fs-md);
@@ -1008,6 +904,17 @@ html.is-mac .toolbar {
   max-width: 720px;
   margin: 0 auto;
   width: 100%;
+  min-height: 100%;
+}
+
+/* 稿纸正文（设计稿 .sheet）：衬线、1.9 行距、两端对齐。不引入新字体文件，
+   沿用 tokens.css 的 --font-serif 家族衬线栈（预览视图早已同源）。 */
+.rich-editor p {
+  margin: 0 0 0.85em;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1.9;
+  text-align: justify;
 }
 
 /* 编辑区本体是 contenteditable（Tiptap 把 attributes.class 挂在 ProseMirror
@@ -1020,49 +927,45 @@ html.is-mac .toolbar {
   outline: none;
 }
 
-/* ProseMirror 自己会给 contenteditable 加 outline / white-space，
-   两处都要覆盖，否则聚焦时有一圈蓝边，且长行不换行。 */
-.rich-editor .ProseMirror {
-  min-height: 100%;
-}
-
-.rich-editor .ProseMirror p {
-  margin: 0 0 0.85em;
-}
-
-.rich-editor .ProseMirror h1,
-.rich-editor .ProseMirror h2,
-.rich-editor .ProseMirror h3,
-.rich-editor .ProseMirror h4 {
+/* 2026-10-31：以下选择器原来是「可编辑根的后代里再找 ProseMirror 节点」的
+   写法，一条都没命中 —— Tiptap 把 attributes.class 挂在与 ProseMirror 同一棵
+   可编辑根节点上，EditorContent 的外层 div 没有任何 class，这层后代关系
+   不存在。稿纸字体、表格、任务列表、占位符此前全是死样式，全部去掉中间那层。 */
+.rich-editor h1,
+.rich-editor h2,
+.rich-editor h3,
+.rich-editor h4 {
   margin: 1.4em 0 0.5em;
   line-height: 1.25;
-  font-weight: 650;
+  font-weight: 550;
   color: var(--text-primary);
+  /* 稿纸标题也走衬线（设计稿 .sheet h1） */
+  font-family: var(--font-serif);
 }
 
-.rich-editor .ProseMirror h1 { font-size: 1.9em; }
-.rich-editor .ProseMirror h2 { font-size: 1.5em; }
-.rich-editor .ProseMirror h3 { font-size: 1.22em; }
-.rich-editor .ProseMirror h4 { font-size: 1.05em; }
+.rich-editor h1 { font-size: 1.9em; }
+.rich-editor h2 { font-size: 1.5em; }
+.rich-editor h3 { font-size: 1.22em; }
+.rich-editor h4 { font-size: 1.05em; }
 
-.rich-editor .ProseMirror ul,
-.rich-editor .ProseMirror ol {
+.rich-editor ul,
+.rich-editor ol {
   margin: 0 0 0.85em;
   padding-left: 1.6em;
 }
 
-.rich-editor .ProseMirror li p {
+.rich-editor li p {
   margin: 0 0 0.25em;
 }
 
-.rich-editor .ProseMirror blockquote {
+.rich-editor blockquote {
   margin: 0 0 0.85em;
   padding-left: 1em;
   border-left: 2px solid var(--border-strong);
   color: var(--text-secondary);
 }
 
-.rich-editor .ProseMirror code {
+.rich-editor code {
   font-family: var(--font-mono);
   font-size: 0.92em;
   background: var(--bg-inset);
@@ -1070,7 +973,7 @@ html.is-mac .toolbar {
   padding: 0.1em 0.32em;
 }
 
-.rich-editor .ProseMirror pre {
+.rich-editor pre {
   margin: 0 0 0.85em;
   padding: 12px 14px;
   background: var(--bg-inset);
@@ -1079,45 +982,45 @@ html.is-mac .toolbar {
   overflow-x: auto;
 }
 
-.rich-editor .ProseMirror pre code {
+.rich-editor pre code {
   background: none;
   padding: 0;
   font-size: 0.9em;
 }
 
-.rich-editor .ProseMirror hr {
+.rich-editor hr {
   border: none;
   border-top: 1px solid var(--border);
   margin: 1.6em 0;
 }
 
-.rich-editor .ProseMirror img {
+.rich-editor img {
   max-width: 100%;
   height: auto;
   border-radius: var(--radius-sm);
 }
 
-.rich-editor .ProseMirror a {
+.rich-editor a {
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-.rich-editor .ProseMirror table {
+.rich-editor table {
   border-collapse: collapse;
   margin: 0 0 0.85em;
   width: 100%;
   font-size: var(--fs-sm);
 }
 
-.rich-editor .ProseMirror th,
-.rich-editor .ProseMirror td {
+.rich-editor th,
+.rich-editor td {
   border: 1px solid var(--border);
   padding: 6px 10px;
   text-align: left;
 }
 
-.rich-editor .ProseMirror th {
+.rich-editor th {
   background: var(--bg-card);
   font-weight: 600;
 }
@@ -1125,7 +1028,7 @@ html.is-mac .toolbar {
 /* 表格结构控制（Tiptap 的 column-resize-handle / selectedCell 等）。
  * 这些 class 由扩展注入、无法避免，故显式用家族令牌接管其外观 ——
  * 否则会带着默认蓝边出现在深色档里。 */
-.rich-editor .ProseMirror .column-resize-handle {
+.rich-editor .column-resize-handle {
   background: var(--border-strong);
   right: -2px;
   width: 4px;
@@ -1134,17 +1037,17 @@ html.is-mac .toolbar {
   position: absolute;
   pointer-events: none;
 }
-.rich-editor .ProseMirror .column-resize-handle.dragging {
+.rich-editor .column-resize-handle.dragging {
   background: var(--accent);
 }
 /* 拖拽时的落点指示线 */
-.rich-editor .ProseMirror.resize-cursor {
+.rich-editor.resize-cursor {
   border-left: 1px solid var(--accent);
   margin-left: -1px;
   pointer-events: none;
 }
-.rich-editor .ProseMirror th.selectedCell::after,
-.rich-editor .ProseMirror td.selectedCell::after {
+.rich-editor th.selectedCell::after,
+.rich-editor td.selectedCell::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1152,31 +1055,31 @@ html.is-mac .toolbar {
   pointer-events: none;
 }
 
-.rich-editor .ProseMirror ul[data-type="taskList"] {
+.rich-editor ul[data-type="taskList"] {
   list-style: none;
   padding-left: 0.2em;
 }
 
-.rich-editor .ProseMirror ul[data-type="taskList"] li {
+.rich-editor ul[data-type="taskList"] li {
   display: flex;
   align-items: flex-start;
   gap: 8px;
 }
 
-.rich-editor .ProseMirror ul[data-type="taskList"] li > label {
+.rich-editor ul[data-type="taskList"] li > label {
   flex: none;
   margin-top: 0.35em;
   user-select: none;
 }
 
-.rich-editor .ProseMirror ul[data-type="taskList"] li > div {
+.rich-editor ul[data-type="taskList"] li > div {
   flex: 1;
   min-width: 0;
 }
 
 /* 空文档占位符：Tiptap 的 Placeholder 扩展用这个属性，
    配合 :empty 选择器 —— 文档只有一个空段落时正好命中。 */
-.rich-editor .ProseMirror p.is-editor-empty:first-child::before {
+.rich-editor p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
   height: 0;
@@ -1473,6 +1376,12 @@ html.is-mac .toolbar {
 .status-item {
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* 状态栏里的数字 / 百分比走等宽（设计稿 06）：.mono 之前只有类名没有规则 */
+.status-item.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .status-chapter {

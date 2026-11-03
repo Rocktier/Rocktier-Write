@@ -23,13 +23,9 @@
 import { memo, useEffect, useReducer } from "react";
 import type { Editor } from "@tiptap/core";
 import { t } from "../i18n";
-import { ViewSwitch } from "./ViewSwitch";
-import type { ViewMode } from "./ViewSwitch";
 
 interface Props {
   editor: Editor | null;
-  viewMode: ViewMode;
-  onViewChange: (mode: ViewMode) => void;
 }
 
 /** 工具栏用到的 i18n 键 —— 字面量联合，写错键名编译不过。 */
@@ -146,7 +142,7 @@ function Icon({ id }: { id: FormatId }) {
   }
 }
 
-export const RichTextToolbar = memo(function RichTextToolbar({ editor, viewMode, onViewChange }: Props) {
+export const RichTextToolbar = memo(function RichTextToolbar({ editor }: Props) {
   /* active/禁用状态要跟选区与文档状态实时走 —— 编辑器实例本身不变（memo 会把它
      挡住），必须显式订阅 Tiptap 的 transaction 事件触发重绘。此前没有订阅，
      按钮高亮停在第一次渲染的状态（暗病，本轮修复）。 */
@@ -170,11 +166,8 @@ export const RichTextToolbar = memo(function RichTextToolbar({ editor, viewMode,
        早先图省事填了 t("rt.bold")，屏幕阅读器会念「加粗，工具栏」——
        语义反了。 */
     <div className="rt-toolbar" role="toolbar" aria-label={t("rt.toolbarLabel")}>
-      {/* 视图开关并入格式条行首（2026-10-05）：此前开关绝对定位浮在容器上，
-          正好压住格式条前几个按钮——这就是「Rich/Edit/Preview 挡住富文本按钮」
-          的根因。并入后同一行从左到右：开关 | 撤销重做 | 格式。 */}
-      <ViewSwitch viewMode={viewMode} onChange={onViewChange} />
-      <span className="rt-sep" aria-hidden="true" />
+      {/* 视图开关 2026-10-30 上移到稿纸区顶条 .deskbar（App 渲染，三个视图共用）；
+          这一条只保留格式动作。行首原为视图开关 + 分隔线。 */}
       {ITEMS.map((item) => {
         const label = t(item.labelKey);
         const on = item.active ? item.active(editor) : false;

@@ -56,12 +56,14 @@ export const StatusBar = memo(function StatusBar({
     !!license && license.channel === "direct" && license.status !== "licensed";
 
   return (
+    // 2026-10-30 家族统一（06-write 设计稿）：状态栏说人话 —— 未保存时红点 +
+    // 文字一起出现（红点永不单独编码状态），数字走等宽字体，右侧是许可/专注/语言。
     <footer className="status-bar">
-      <span className="status-item">{t("status.words", { n: words })}</span>
+      <span className="status-item mono">{t("status.words", { n: words })}</span>
       <span className="sep" />
-      <span className="status-item">{t("status.chars", { n: chars })}</span>
+      <span className="status-item mono">{t("status.chars", { n: chars })}</span>
       <span className="sep" />
-      <span className="status-item">{t("status.session", { m: sessionMinutes })}</span>
+      <span className="status-item mono">{t("status.session", { m: sessionMinutes })}</span>
       {currentChapter && (
         <>
           <span className="sep" />
@@ -71,12 +73,16 @@ export const StatusBar = memo(function StatusBar({
       {wordGoal > 0 && (
         <>
           <span className="sep" />
-          <span className="status-item status-goal">{t("status.goal", { pct: goalProgress })}</span>
+          <span className="status-item status-goal mono">{t("status.goal", { pct: goalProgress })}</span>
         </>
       )}
       {saveState && (
         <>
           <span className="sep" />
+          {/* 红点只配「未保存」：已保存/草稿已存都是结束态，说结果不带点。 */}
+          {saveState === "unsaved" && (
+            <span className="dot-live" role="img" aria-label={t("status.unsavedTitle")} />
+          )}
           <span
             className={`status-item status-save${saveState === "unsaved" ? " unsaved" : ""}`}
             title={

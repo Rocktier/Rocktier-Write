@@ -106,8 +106,12 @@ export const ChapterTree = memo(function ChapterTree({
   }, [headings, currentLine]);
 
   return (
+    // 2026-10-30 家族统一（06-write 设计稿）：章节树每行 = 序号 + 标题 + 字数，
+    // 设了目标的章节在行内画一条 2px 进度细线；当前章靠 aria-current 反白。
     <nav className={`chapter-tree ${visible ? "open" : ""}`} aria-label={t("chapters.title")}>
-      <div className="chapter-header">{t("chapters.title")}</div>
+      <div className="tree-head">
+        <h2>{t("chapters.title")}</h2>
+      </div>
       <div className="chapter-list">
         {headings.length === 0 ? (
           <div className="chapter-empty">{t("chapters.empty")}</div>
@@ -118,24 +122,32 @@ export const ChapterTree = memo(function ChapterTree({
             const isEditing = editingLine === h.line;
             const isCurrent = i === currentIndex;
             const overflow = goal > 0 && words > goal;
+            const goalPct = goal > 0 ? Math.min(100, Math.round((words / goal) * 100)) : 0;
             return (
-              <div key={`${h.line}-${i}`} className={`chapter-row ${isCurrent ? "current" : ""}`}>
+              <div
+                key={`${h.line}-${i}`}
+                className={`chapter-row ${isCurrent ? "current" : ""}`}
+                aria-current={isCurrent ? "true" : undefined}
+              >
                 <button
-                  className={`chapter-item level-${Math.min(h.level, 3)} ${h.line <= currentLine ? "passed" : ""}`}
+                  className={`chapter-item level-${Math.min(h.level, 3)}`}
                   onClick={() => onJumpTo(h.line)}
                   title={h.text}
                 >
-                  {h.text}
-                </button>
-                <div className="chapter-meta">
-                  <span className={`chapter-words ${overflow ? "overflow" : ""}`}>
-                    {words}
+                  <span className="row">
+                    <span className="no">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="name">{h.text}</span>
+                    <span className={`num${overflow ? " overflow" : ""}`}>
+                      {words > 0 ? words.toLocaleString() : t("chapters.notStarted")}
+                    </span>
                   </span>
                   {goal > 0 && (
-                    <span className="chapter-goal-badge" title={t("chapters.goalBadge", { goal: String(goal) })}>
-                      {Math.min(100, Math.round((words / goal) * 100))}%
+                    <span className="meter" title={t("chapters.goalBadge", { goal: String(goal) })} aria-hidden="true">
+                      <i style={{ width: `${goalPct}%` }} />
                     </span>
                   )}
+                </button>
+                <div className="chapter-meta">
                   {isEditing ? (
                     <ChapterGoalInput
                       initialValue={goal}
