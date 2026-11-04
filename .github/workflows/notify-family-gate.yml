@@ -75,5 +75,6 @@ jobs:
             echo "✅ 已触发 $LEDGER 的 family-contract"
           else
             echo "::warning::触发失败（将由台账仓 cron 兜底；需要即时结果请手动派发）："
-            sed 's/^/  /' /tmp/err.txt | head -5
+            # 用 sed -n 而不是 `| head -5`：pipefail 下 head 提前退出会让 sed 吃 SIGPIPE(141)
+            sed -n '1,5p' /tmp/err.txt | sed 's/^/  /'
           fi

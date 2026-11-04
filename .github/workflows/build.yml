@@ -87,14 +87,28 @@ jobs:
 
       # bundle_dmg.sh 失败时可能留下已挂载的读写镜像（rw.*.dmg），
       # 不 detach 掉会让重试撞在同一个残留上。
+      #
+      # 注意：`grep -i rocktier` 无匹配时返回 1，在 pipefail 下会把整个
+      # step 判成失败，于是 Retry build 永远被 skip（2026-11-04 run 41772676495）。
+      # 「没有残留挂载」是正常路径，必须走成功分支。
+      - name: Record first build failure
+        if: steps.tauri_build.outcome == 'failure'
+        run: |
+          echo "::warning::tauri-action 首次构建失败（bundle_dmg.sh），清理残留挂载后重试一次；本次 warning 不代表 job 结果"
+          echo "first attempt outcome=${{ steps.tauri_build.outcome }}"
+
       - name: Clean stale DMG mounts before retry
         if: steps.tauri_build.outcome == 'failure'
         run: |
           set -uo pipefail
-          hdiutil info 2>/dev/null | awk '/\/Volumes\// {print $NF}' \
-            | grep -i rocktier | while read -r m; do
-                echo "detaching $m"; hdiutil detach "$m" -force || true
-              done
+          mounts=$(hdiutil info 2>/dev/null | awk '/\/Volumes\// {print $NF}' | grep -i rocktier || true)
+          if [ -n "$mounts" ]; then
+            printf '%s\n' "$mounts" | while read -r m; do
+              echo "detaching $m"; hdiutil detach "$m" -force || true
+            done
+          else
+            echo "no stale Rocktier mounts"
+          fi
           rm -rf "src-tauri/target/${{ matrix.target }}/release/bundle/dmg"
           echo "cleaned"
 
@@ -219,7 +233,13 @@ jobs:
           set -euo pipefail
           APP=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/macos" -name "*.app" -print -quit)
           [ -z "$APP" ] && { echo "::error::.app not found"; exit 1; }
-          file "$APP/Contents/MacOS/"* | tee /dev/stderr | grep -q '${{ matrix.filearch }}'
+          # 不用 `| grep -q`：pipefail 下 grep 提前退出会让上游 tee/file 吃 SIGPIPE(141)
+          arch_out=$(file "$APP/Contents/MacOS/"*)
+          echo "$arch_out"
+          case "$arch_out" in
+            *'${{ matrix.filearch }}'*) ;;
+            *) echo "::error::arch mismatch, expected ${{ matrix.filearch }}"; exit 1 ;;
+          esac
           echo "Signing status:"
           codesign -dvvv "$APP" 2>&1 | grep -E 'Signature=|Authority=|TeamIdentifier=' || true
           DMG=$(find "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" -name "*.dmg" -print -quit)
