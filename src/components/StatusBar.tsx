@@ -58,7 +58,7 @@ export const StatusBar = memo(function StatusBar({
   return (
     // 2026-10-30 家族统一（06-write 设计稿）：状态栏说人话 —— 未保存时红点 +
     // 文字一起出现（红点永不单独编码状态），数字走等宽字体，右侧是许可/专注/语言。
-    <footer className="status-bar">
+    <footer className="status-bar" role="status" aria-live="polite">
       <span className="status-item mono">{t("status.words", { n: words })}</span>
       <span className="sep" />
       <span className="status-item mono">{t("status.chars", { n: chars })}</span>

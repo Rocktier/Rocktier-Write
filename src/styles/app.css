@@ -1376,7 +1376,7 @@ html.is-mac .topbar {
 .status-bar {
   display: flex;
   align-items: center;
-  height: 28px;
+  height: var(--statusbar-h);
   padding: 0 12px;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
