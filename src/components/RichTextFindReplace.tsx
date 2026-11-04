@@ -183,17 +183,20 @@ export const RichTextFindReplace = memo(function RichTextFindReplace({ onClose }
           if (e.key === "Escape") { e.preventDefault(); onClose(); }
         }}
       />
-      <span className="fr-count" aria-live="polite">
+      {/* 复用源码视图同款 .find-counter：此前 .fr-count 无任何 CSS 规则，
+          计数是浏览器默认排版（2026-10-25 审计登记）。 */}
+      <span className="find-counter" aria-live="polite">
         {needle
           ? matches.length === 0
             ? t("find.noMatch")
             : `${cursor + 1}/${matches.length}`
           : ""}
       </span>
+      {/* 字形钮没有 SVG 可用（仓内图标集不对外），至少补齐可访问名 */}
       <button type="button" onClick={() => goto(cursor - 1)} disabled={!matches.length}
-        title={t("find.prevTitle")}>↑</button>
+        title={t("find.prevTitle")} aria-label={t("find.prevTitle")}>↑</button>
       <button type="button" onClick={() => goto(cursor + 1)} disabled={!matches.length}
-        title={t("find.nextTitle")}>↓</button>
+        title={t("find.nextTitle")} aria-label={t("find.nextTitle")}>↓</button>
       <label className="fr-opt" title={t("find.matchCaseTitle")}>
         <input
           type="checkbox"

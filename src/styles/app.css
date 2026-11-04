@@ -378,6 +378,9 @@ html.is-mac .topbar {
 /* ── Sidebar：章节树（设计稿 .tree）──────────────────────────────── */
 
 .sidebar {
+  /* 窄窗时 .chapter-tree.open 是 absolute；不给 sidebar 定位上下文的话，
+     它会相对视口 top:0 展开，把顶部页签条整条盖住（2026-10-25 审计登记）。 */
+  position: relative;
   width: 252px;
   min-width: 252px;
   background: var(--rail);
@@ -894,6 +897,26 @@ html.is-mac .topbar {
 .fr-input {
   min-height: 24px;
   box-sizing: border-box;
+}
+
+/* 「区分大小写」勾选项：此前 .fr-opt 只有类名、无规则（浏览器默认行高把
+   勾选框和 Aa 挤在一起，命中区也不足 24px）。 */
+.find-replace .fr-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 2px;
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  user-select: none;
+}
+.find-replace .fr-opt input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent-brand);
 }
 
 /* 查找替换条关闭钮：× 视觉不变，::after 补足 24×24 命中区（WCAG 2.5.8；
@@ -1641,6 +1664,7 @@ html.is-mac .topbar {
 }
 
 .tab-close {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1656,6 +1680,18 @@ html.is-mac .topbar {
   border: none;
   cursor: pointer;
   transition: opacity var(--dur-fast), background var(--dur-fast);
+}
+
+/* × 视觉仍是 16×16，::after 把可点区域补到 24×24（WCAG 2.5.8；与
+   .find-replace .fr-close 同一做法，2026-10-25 审计 D-78）。 */
+.tab-close::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
 }
 
 .tab-close:hover {

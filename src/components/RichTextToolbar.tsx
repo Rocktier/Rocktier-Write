@@ -20,7 +20,7 @@
  * `aria-label`；`title` 与 `aria-label` 同源（都走 i18n 键），避免出现
  * 「悬停显示英文、屏幕阅读器念中文」这种分裂。
  */
-import { memo, useEffect, useReducer } from "react";
+import { memo, useEffect, useReducer, useState } from "react";
 import type { Editor } from "@tiptap/core";
 import { t } from "../i18n";
 
@@ -31,6 +31,7 @@ interface Props {
 /** 工具栏用到的 i18n 键 —— 字面量联合，写错键名编译不过。 */
 type LabelKey =
   | "rt.toolbarLabel" | "rt.addLink" | "rt.removeLinkConfirm"
+  | "dlg.cancel" | "dlg.insert" | "dlg.remove"
   | "rt.undo" | "rt.redo"
   | "rt.bold" | "rt.italic" | "rt.strike" | "rt.h1" | "rt.h2"
   | "rt.bulletList" | "rt.orderedList" | "rt.taskList"
@@ -53,7 +54,8 @@ const ITEMS: ReadonlyArray<{
   labelKey: LabelKey;
   /** 返回该格式在当前选区是否生效（undo/redo 无此语义） */
   active?: (e: Editor) => boolean;
-  run: (e: Editor) => void;
+  /** 就地执行的格式动作；需要用户输入/确认的（链接）不走这里 */
+  run?: (e: Editor) => void;
   /** 返回该按钮是否应当禁用（undo/redo 在栈空时置灰） */
   disabled?: (e: Editor) => boolean;
 }> = [
@@ -85,23 +87,9 @@ const ITEMS: ReadonlyArray<{
     active: (e) => e.isActive("blockquote"), run: (e) => e.chain().focus().toggleBlockquote().run() },
   { id: "codeBlock", labelKey: "rt.codeBlock",
     active: (e) => e.isActive("codeBlock"), run: (e) => e.chain().focus().toggleCodeBlock().run() },
-  { id: "link", labelKey: "rt.link",
-    active: (e) => e.isActive("link"),
-    run: (e) => {
-      // 已有链接 → 先问要不要删（避免「想改链接却先删掉了」）；
-      // 没有 → 提示输入。没有输入内容就不动，胜过插入一个空链接。
-      if (e.isActive("link")) {
-        if (window.confirm(t("rt.removeLinkConfirm"))) e.chain().focus().unsetLink().run();
-        return;
-      }
-      const prev = (e.getAttributes("link").href as string | undefined) ?? "";
-      const url = window.prompt(t("rt.addLink"), prev);
-      if (!url) return;
-      // 缺协议就补上：用户直接粘贴 "example.com" 时 Tiptap 会当成相对路径，
-      // 存进 .md 源码后别人点不开 —— 写盘前补全是最省事的时机。
-      const full = /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`;
-      e.chain().focus().setLink({ href: full }).run();
-    } },
+  // 链接要先问 URL 或确认删除，用条内的对话框（下方 LinkDialog），
+  // 不再调 window.prompt/prompt —— 系统弹窗不跟主题、在深色下刺眼。
+  { id: "link", labelKey: "rt.link", active: (e) => e.isActive("link") },
 ];
 
 /* 极简图标：全部 16×16、stroke 走 currentColor，与家族 .icon-btn / .tbar-btn 同规范。
@@ -142,11 +130,105 @@ function Icon({ id }: { id: FormatId }) {
   }
 }
 
+/* 链接对话框：视觉复用许可对话框的 overlay / dialog / field / footer 类，
+   不另起一套控件；原生 prompt/confirm 是系统白框，深色主题下既刺眼也不可主题化。
+   Esc / 点遮罩取消，Enter 提交（与浏览器 prompt 的肌肉记忆一致）。 */
+function LinkDialog({ mode, initial, onCancel, onDone }: {
+  mode: "add" | "remove";
+  initial: string;
+  onCancel: () => void;
+  onDone: (value: string) => void;
+}) {
+  const [value, setValue] = useState(initial);
+
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") { ev.preventDefault(); onCancel(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
+  return (
+    <div className="license-overlay" onMouseDown={onCancel} role="presentation">
+      <div
+        className="license-dialog"
+        onMouseDown={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === "add" ? t("rt.addLink") : t("rt.removeLinkConfirm")}
+      >
+        {mode === "add" ? (
+          <>
+            <div className="license-header"><h3>{t("rt.addLink")}</h3></div>
+            <div className="license-body">
+              <div className="license-field">
+                <input
+                  autoFocus
+                  aria-label="URL"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onDone(value); } }}
+                />
+              </div>
+            </div>
+            <div className="license-footer">
+              <span className="license-footer-spacer" />
+              <button type="button" onClick={onCancel}>{t("dlg.cancel")}</button>
+              <button
+                type="button"
+                className="license-activate"
+                onClick={() => onDone(value)}
+                disabled={!value.trim()}
+              >
+                {t("dlg.insert")}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="license-header"><h3>{t("rt.removeLinkConfirm")}</h3></div>
+            <div className="license-footer">
+              <span className="license-footer-spacer" />
+              <button type="button" onClick={onCancel}>{t("dlg.cancel")}</button>
+              <button type="button" className="license-activate" onClick={() => onDone("")}>
+                {t("dlg.remove")}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export const RichTextToolbar = memo(function RichTextToolbar({ editor }: Props) {
   /* active/禁用状态要跟选区与文档状态实时走 —— 编辑器实例本身不变（memo 会把它
      挡住），必须显式订阅 Tiptap 的 transaction 事件触发重绘。此前没有订阅，
      按钮高亮停在第一次渲染的状态（暗病，本轮修复）。 */
   const [, bump] = useReducer((x: number) => x + 1, 0);
+  const [linkDlg, setLinkDlg] = useState<null | { mode: "add"; prev: string } | { mode: "remove" }>(null);
+
+  const openLinkDialog = () => {
+    if (!editor) return;
+    // 已有链接 → 先问要不要删（避免「想改链接却先删掉了」）
+    if (editor.isActive("link")) { setLinkDlg({ mode: "remove" }); return; }
+    const prev = (editor.getAttributes("link").href as string | undefined) ?? "";
+    setLinkDlg({ mode: "add", prev });
+  };
+
+  const applyLink = (raw: string) => {
+    if (!editor) return;
+    const mode = linkDlg?.mode;
+    setLinkDlg(null);
+    if (mode === "remove") { editor.chain().focus().unsetLink().run(); return; }
+    const url = raw.trim();
+    if (!url) return;
+    // 缺协议就补上：用户直接粘贴 "example.com" 时 Tiptap 会当成相对路径，
+    // 存进 .md 源码后别人点不开 —— 写盘前补全是最省事的时机。
+    const full = /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`;
+    editor.chain().focus().setLink({ href: full }).run();
+  };
   useEffect(() => {
     if (!editor) return;
     const h = () => bump();
@@ -162,34 +244,44 @@ export const RichTextToolbar = memo(function RichTextToolbar({ editor }: Props) 
   if (!editor) return <div className="rt-toolbar" aria-hidden="true" />;
 
   return (
-    /* role="toolbar" 的 aria-label 要说的是**这一整条**是什么，不是第一个按钮。
-       早先图省事填了 t("rt.bold")，屏幕阅读器会念「加粗，工具栏」——
-       语义反了。 */
-    <div className="rt-toolbar" role="toolbar" aria-label={t("rt.toolbarLabel")}>
-      {/* 视图开关 2026-10-30 上移到稿纸区顶条 .deskbar（App 渲染，三个视图共用）；
-          这一条只保留格式动作。行首原为视图开关 + 分隔线。 */}
-      {ITEMS.map((item) => {
-        const label = t(item.labelKey);
-        const on = item.active ? item.active(editor) : false;
-        const off = item.disabled ? item.disabled(editor) : false;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            className={`rt-btn${on ? " active" : ""}`}
-            // `onMouseDown` + preventDefault：否则按钮会抢走编辑器选区，
-            // 点了「加粗」之后光标丢失，无法继续输入 —— 这是格式条最常见的坑。
-            onMouseDown={(ev) => ev.preventDefault()}
-            onClick={() => item.run(editor)}
-            disabled={off}
-            aria-pressed={item.active ? on : undefined}
-            aria-label={label}
-            title={label}
-          >
-            <Icon id={item.id} />
-          </button>
-        );
-      })}
-    </div>
+    <>
+      {/* role="toolbar" 的 aria-label 要说的是**这一整条**是什么，不是第一个按钮。
+         早先图省事填了 t("rt.bold")，屏幕阅读器会念「加粗，工具栏」——
+         语义反了。 */}
+      <div className="rt-toolbar" role="toolbar" aria-label={t("rt.toolbarLabel")}>
+        {/* 视图开关 2026-10-30 上移到稿纸区顶条 .deskbar（App 渲染，三个视图共用）；
+            这一条只保留格式动作。行首原为视图开关 + 分隔线。 */}
+        {ITEMS.map((item) => {
+          const label = t(item.labelKey);
+          const on = item.active ? item.active(editor) : false;
+          const off = item.disabled ? item.disabled(editor) : false;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`rt-btn${on ? " active" : ""}`}
+              // `onMouseDown` + preventDefault：否则按钮会抢走编辑器选区，
+              // 点了「加粗」之后光标丢失，无法继续输入 —— 这是格式条最常见的坑。
+              onMouseDown={(ev) => ev.preventDefault()}
+              onClick={() => (item.id === "link" ? openLinkDialog() : item.run?.(editor))}
+              disabled={off}
+              aria-pressed={item.active ? on : undefined}
+              aria-label={label}
+              title={label}
+            >
+              <Icon id={item.id} />
+            </button>
+          );
+        })}
+      </div>
+      {linkDlg ? (
+        <LinkDialog
+          mode={linkDlg.mode}
+          initial={linkDlg.mode === "add" ? linkDlg.prev : ""}
+          onCancel={() => { setLinkDlg(null); editor.commands.focus(); }}
+          onDone={applyLink}
+        />
+      ) : null}
+    </>
   );
 });
