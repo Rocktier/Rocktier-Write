@@ -1,6 +1,15 @@
 # Rocktier Write — CI build & release
 # macOS dmg for Apple Silicon and Intel; Windows MSI (WiX) for direct download;
 # Windows MSIX via @choochmeque/tauri-windows-bundle.
+#
+# 触发条件为什么同时监听 main（2026-11-13 定案，见 rocktier-docs 通用准则 §14.3）：
+#   仓库是 public → 托管 runner 不计费，分支构建白拿一份「打包链路没烂」的信号。
+#   ci.yml 只跑 cargo test/clippy/前端测试，**不打包**；dmg / WiX / MSIX 依赖
+#   bundler 与工具链版本、不依赖业务代码，正是「长期不跑、某天炸在发版日」的高危区。
+#   ⚠️ 若本仓改回 private：立刻删掉下面的 `branches: [main]`。私有仓 macOS 倍率 10×，
+#   一次全平台构建就能吃掉几天配额，还会挤掉真正的发版。
+#   ⚠️ 分支构建不许产出可下载资产：tauri-action 的 tagName 必须保持
+#   `github.ref_type == 'tag' && 'v__VERSION__' || ''` 这个形状，否则 main 会覆盖线上资产。
 
 name: Build & Release
 
