@@ -60,7 +60,7 @@
   },
   "productName": "Rocktier Write",
   "mainBinaryName": "RocktierWrite",
-  "version": "1.4.15",
+  "version": "1.4.16",
   "identifier": "com.rocktier.write",
   "app": {
     "windows": [
