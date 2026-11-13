@@ -26,11 +26,14 @@
  *   scope 匹配（deny 清单、$APPDATA 展开等）也没问题。真机行为仍需装包实测。
  */
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, dirname, relative, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+/** 前端源码根的候选名。家族内不统一：多数用 src/，OCR 用 ui/。 */
+const SOURCE_ROOTS = ["src", "ui", "app", "web"];
 
 /** 仓名从 tauri.conf.json 读，家族各仓直接复用本脚本、无需改文案。 */
 function productName(root) {
@@ -79,17 +82,24 @@ function walk(dir, out = []) {
   return out;
 }
 
+/** 存在的源码根。一个都没找到时主流程判红 —— 空目录不能当「没用 fs」看。 */
+function sourceRoots(root) {
+  return SOURCE_ROOTS.map((n) => join(root, n)).filter((dir) => existsSync(dir));
+}
+
 /** 收集源码里从 plugin-fs 具名导入的 API。 */
 function collectImports(root) {
   const hits = [];
-  for (const file of walk(join(root, "src"))) {
-    const src = readFileSync(file, "utf8");
-    const re = /import\s*(?:type\s+)?\{([^}]*)\}\s*from\s*["']@tauri-apps\/plugin-fs["']/g;
-    let m;
-    while ((m = re.exec(src))) {
-      for (const part of m[1].split(",")) {
-        const name = part.trim().split(/\s+as\s+/)[0].trim();
-        if (name) hits.push({ file: relative(root, file), api: name });
+  for (const base of sourceRoots(root)) {
+    for (const file of walk(base)) {
+      const src = readFileSync(file, "utf8");
+      const re = /import\s*(?:type\s+)?\{([^}]*)\}\s*from\s*["']@tauri-apps\/plugin-fs["']/g;
+      let m;
+      while ((m = re.exec(src))) {
+        for (const part of m[1].split(",")) {
+          const name = part.trim().split(/\s+as\s+/)[0].trim();
+          if (name) hits.push({ file: relative(root, file), api: name });
+        }
       }
     }
   }
@@ -199,8 +209,18 @@ function selftest() {
   return failures.length === 0;
 }
 
-const results = audit(collectImports(ROOT), grantedIds(ROOT));
+const roots = sourceRoots(ROOT);
 console.log(`\n══════ ${productName(ROOT)} · fs 权限对账判据 ══════`);
+if (roots.length === 0) {
+  // 空目录与「真的不用 fs」在 audit 眼里长得一样，必须分开处理 ——
+  // 否则换个前端目录名（OCR 是 ui/）就会静默变成永远绿。
+  console.log(`  ❌ 找不到前端源码根（试过 ${SOURCE_ROOTS.join(" / ")}）`);
+  console.log(`     空目录不能当「没用 fs」看，判据在这里必须红\n`);
+  process.exit(1);
+}
+console.log(`  源码根: ${roots.map((r) => relative(ROOT, r)).join(", ")}`);
+
+const results = audit(collectImports(ROOT), grantedIds(ROOT));
 for (const r of results) console.log(`  ${r.ok ? "✅" : "❌"} ${r.id.padEnd(18)} ${r.detail}`);
 const mainOk = results.every((r) => r.ok);
 console.log(`\n  主检查: ${results.filter((r) => r.ok).length}/${results.length} 通过`);
