@@ -39,6 +39,14 @@ jobs:
         run: |
           npm run build
           npm test
+      - name: fs permission audit
+        # 草稿恢复的 stale 判定靠 stat()：src/App.tsx:361 把 stat 包在
+        # try/catch 里（"文件不存在就当没更新"），而 capabilities 一直只授了
+        # read-text-file / write-text-file / exists —— 运行时被 ACL 拒、
+        # 被 catch 吞掉，stale 恒 false，于是无论磁盘是否更新都提示"草稿更新"，
+        # 用户点恢复就用旧草稿盖掉磁盘新内容。这是与 MD 同款的静默数据丢失
+        # 路径（D-142），此处对账「源码要的 fs API」与「配置给的权限」。
+        run: npm run verify:fs
       - name: Rust tests + clippy
         run: |
           cargo test --manifest-path src-tauri/Cargo.toml

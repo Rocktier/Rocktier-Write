@@ -15,7 +15,8 @@
     "tauri:build": "tauri build",
     "tauri:build:mas": "tauri build --config src-tauri/tauri.mas.conf.json --features mas",
     "tauri:windows:build": "tauri-windows-bundle build --runner npm",
-    "family:check": "node scripts/family-check.mjs --self --product write"
+    "family:check": "node scripts/family-check.mjs --self --product write",
+    "verify:fs": "node scripts/verify-fs-permissions.mjs --selftest"
   },
   "dependencies": {
     "@codemirror/commands": "^6.8.0",
