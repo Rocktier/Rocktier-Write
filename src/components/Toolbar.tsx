@@ -99,14 +99,16 @@ export const Toolbar = memo(function Toolbar({
   const goalProgress = wordGoal > 0 ? Math.min(100, Math.round((words / wordGoal) * 100)) : 0;
 
   return (
-    // data-tauri-drag-region：窗口标题栏为 Overlay+hiddenTitle，顶部条充当拖动区。
-    // Tauri v2 只认带该属性的命中元素自身，子元素（按钮/输入框/菜单）点击不受影响；
-    // 弹性的空白中间区 .toolbar-spacer 也带上属性，保证有可拖动的空白带。
+    // data-tauri-drag-region="deep"：窗口标题栏为 Overlay+hiddenTitle，顶部条整片可拖。
+    // 裸属性（不带值）的语义是「只有直接点在这层元素本身才算拖拽区」（Tauri 注入脚本
+    // 里 el === composedPath[0]），点在品牌名、文档名这些子元素上会失效；deep 让整棵
+    // 子树都可拖，button / input / select 由 CLICKABLE_TAGS 继续阻断，按钮和输入框
+    // 不受影响（D-151）。
     //
     // 2026-10-30 家族统一顶栏（06-write 设计稿）：品牌位 = 图标 + h1 产品名 +
     // 一句话自述；随后是 doc-title（文档名 + 未保存标记）；主操作只有「保存」
     // 一个（实心、位置固定在最右侧组首位），其余动作一律幽灵按钮降级。
-    <header className="topbar" data-tauri-drag-region>
+    <header className="topbar" data-tauri-drag-region="deep">
       <div className="brand">
         <img className="brand-mark" src="/favicon.png" alt="" />
         <h1 className="brand-name">Rocktier Write</h1>
@@ -121,7 +123,8 @@ export const Toolbar = memo(function Toolbar({
         {modified && <span title={t("toolbar.unsaved")}>{t("status.unsaved")}</span>}
       </div>
 
-      <div className="toolbar-spacer" data-tauri-drag-region />
+      {/* 弹性空白带，纯占位；拖拽由 header 的 deep 覆盖，不必再加属性 */}
+      <div className="toolbar-spacer" />
 
       {/* ── Create：进来（幽灵按钮） ── */}
       <div className="tgroup" role="group" aria-label={t("toolbar.groupCreate")}>
