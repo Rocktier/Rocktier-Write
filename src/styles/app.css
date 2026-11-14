@@ -1953,6 +1953,10 @@ html.is-mac .topbar {
 
 .update-body p { margin: 0 0 10px; }
 
+/* 确认框正文：草稿恢复文案里带「文件名 + 两种时间关系」的整句，
+   窄框下需要按原文换行，不能被折成一坨（与 MD 同一规则）。 */
+.confirm-message { white-space: pre-line; }
+
 .update-body small { color: var(--text-muted); line-height: 1.5; }
 
 .update-footer {

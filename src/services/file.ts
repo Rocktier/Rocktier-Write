@@ -1,7 +1,7 @@
 // File I/O service — Tauri-backed
 
 import { invoke } from "@tauri-apps/api/core";
-import { open as dialogOpen, save as dialogSave, ask } from "@tauri-apps/plugin-dialog";
+import { open as dialogOpen, save as dialogSave } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile, exists } from "@tauri-apps/plugin-fs";
 
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -24,18 +24,6 @@ const MD_EXTENSIONS = [
   { name: "Markdown", extensions: ["md", "markdown", "mdown", "mkd", "mkdn", "mdwn", "mdtxt", "mdtext", "text", "txt"] },
   { name: "All Files", extensions: ["*"] },
 ];
-
-/** Native warning dialog in Tauri, window.confirm in browser-only dev mode. */
-export async function confirmDialog(message: string): Promise<boolean> {
-  if (isTauri) {
-    try {
-      return await ask(message, { title: "Rocktier Write", kind: "warning" });
-    } catch {
-      return window.confirm(message);
-    }
-  }
-  return window.confirm(message);
-}
 
 /**
  * Splits raw file text into LF-normalised content plus the line ending it used.

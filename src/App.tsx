@@ -19,13 +19,14 @@ import { RichTextEditor } from "./components/RichTextEditor";
 import type { ViewMode } from "./components/ViewSwitch";
 import { FrontmatterPanel } from "./components/FrontmatterPanel";
 import { LicenseDialog } from "./components/LicenseDialog";
+import { ConfirmDialog } from "./components/ConfirmDialog";
 import { UpdateDialog } from "./components/UpdateDialog";
 import { licenseStatus, onLicenseExpired, isLicenseExpiredError, revalidateLicence, type LicenseInfo } from "./services/license";
 import { checkForUpdates, currentVersion, type UpdateResult, type UpdateState } from "./services/updates";
 import { useTheme } from "./hooks/useTheme";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
-  openFile, saveFile, saveFileAs, confirmDialog, normalizeEol, applyEol, type Eol,
+  openFile, saveFile, saveFileAs, normalizeEol, applyEol, type Eol,
 } from "./services/file";
 import { exists, readTextFile, stat } from "@tauri-apps/plugin-fs";
 import { WELCOME_DOCUMENT, type MarkdownDocument } from "./types/index";
@@ -245,6 +246,25 @@ export default function App() {
   const [updateOpen, setUpdateOpen] = useState(false);
   const updateChecking = useRef(false);
 
+  /* 应用内确认框（规范 v2 §7：禁止原生 ask / window.confirm）。
+     此前 7 处调用走的是 Tauri 的 ask()，系统弹窗不跟主题 —— 深色档下是一块
+     白板（D-80 同一根因）。Promise 化让「等用户点一下」保持原有
+     `if (await …)` 的调用形态，调用点不用改成回调。 */
+  const [confirmReq, setConfirmReq] = useState<{
+    message: string;
+    resolve: (ok: boolean) => void;
+  } | null>(null);
+  const askConfirm = useCallback(
+    (message: string) => new Promise<boolean>((resolve) => setConfirmReq({ message, resolve })),
+    []
+  );
+  const settleConfirm = useCallback((ok: boolean) => {
+    setConfirmReq((req) => {
+      req?.resolve(ok);
+      return null;
+    });
+  }, []);
+
   /* 检查更新。**只有这里会触发联网检查** —— 右下角入口与帮助菜单共用。
      用 ref 而非 state 判重：连点两次不该发出两个请求。 */
   const runUpdateCheck = useCallback(async () => {
@@ -309,7 +329,7 @@ export default function App() {
         invoke("close_ack").catch(() => {});
         const hasUnsaved = docs.some((d) => d.modified);
         if (hasUnsaved) {
-          if (!(await confirmDialog(t("confirm.discard")))) return;
+          if (!(await askConfirm(t("confirm.discard")))) return;
         }
         try { await invoke("force_close"); } catch { /* window gone */ }
       });
@@ -318,7 +338,7 @@ export default function App() {
       await invoke("mark_ready").catch(() => {});
     })();
     return () => { disposed = true; unlisten?.(); };
-  }, [docs]);
+  }, [docs, askConfirm]);
 
   // ── Recovery on launch ───────────────────────────────────────────
   useEffect(() => {
@@ -361,7 +381,7 @@ export default function App() {
               try { const info = await stat(draft.path); stale = (info.mtime ? info.mtime.getTime() : 0) > draft.modified_ms; } catch { /* not found */ }
               message = t(stale ? "confirm.recoverNamedOlder" : "confirm.recoverNamedNewer", { name });
             }
-            if (await confirmDialog(message)) {
+            if (await askConfirm(message)) {
               if (!cancelled) restored = { id: newDocId(), path: untitled ? null : draft.path, content: draft.content, modified: true };
             } else {
               await invoke("clear_recovery", { path: draft.path }).catch(() => {});
@@ -378,7 +398,7 @@ export default function App() {
       }
     })();
     return () => { cancelled = true; };
-  }, [rememberPath]);
+  }, [rememberPath, askConfirm]);
 
   const openContent = useCallback((content: string, path: string | null, eol: Eol, modified?: boolean) => {
     lastPathRef.current = path;
@@ -545,7 +565,7 @@ export default function App() {
     const doc = docs.find((d) => d.id === id);
     if (!doc) return;
     if (doc.modified) {
-      if (!(await confirmDialog(t("confirm.discard")))) return;
+      if (!(await askConfirm(t("confirm.discard")))) return;
     }
     setDocs((prev) => {
       const remaining = prev.filter((d) => d.id !== id);
@@ -562,7 +582,7 @@ export default function App() {
       const next = docs.find((d) => d.id !== id);
       if (next) setActiveId(next.id);
     }
-  }, [docs, activeId]);
+  }, [docs, activeId, askConfirm]);
 
   const switchDoc = useCallback((id: string) => { setActiveId(id); }, []);
 
@@ -669,7 +689,7 @@ export default function App() {
       showToast(t("toast.unsupportedType"), "error"); return false;
     }
     const hasUnsaved = docs.some((d) => d.modified);
-    if (hasUnsaved) { if (!(await confirmDialog(t("confirm.discard")))) return false; }
+    if (hasUnsaved) { if (!(await askConfirm(t("confirm.discard")))) return false; }
     try {
       if (DOCX_EXTS.includes(ext)) {
         const md = await invoke<string>("import_docx", { path: filePath });
@@ -681,7 +701,7 @@ export default function App() {
       openContent(content, filePath, eol);
       showToast(t("toast.fileOpened"), "success"); return true;
     } catch { showToast(t("toast.cannotReadFile"), "error"); return false; }
-  }, [docs, showToast, openContent]);
+  }, [docs, showToast, openContent, askConfirm]);
 
   const onDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
@@ -690,7 +710,7 @@ export default function App() {
     const ext = file.name.split(".").pop()?.toLowerCase();
     if (!ext || (!MARKDOWN_EXTS.includes(ext) && !DOCX_EXTS.includes(ext))) { showToast(t("toast.unsupportedType"), "error"); return; }
     const hasUnsaved = docs.some((d) => d.modified);
-    if (hasUnsaved) if (!(await confirmDialog(t("confirm.discard")))) return;
+    if (hasUnsaved) if (!(await askConfirm(t("confirm.discard")))) return;
     try {
       if (DOCX_EXTS.includes(ext)) {
         // 拖放拿到的 File 没有磁盘路径（与 openPath 的路径入参不同），把字节交给
@@ -706,7 +726,7 @@ export default function App() {
       openContent(content, null, eol);
       showToast(t("toast.fileOpened"), "success");
     } catch { showToast(t("toast.cannotReadFile"), "error"); }
-  }, [docs, showToast, openContent]);
+  }, [docs, showToast, openContent, askConfirm]);
 
   useEffect(() => {
     if (!isTauri) return;
@@ -787,7 +807,7 @@ export default function App() {
       if (lastPathRef.current !== path) { lastPathRef.current = path; lastSavedRef.current.set(id, diskContent); return; }
       if (diskContent === (lastSavedRef.current.get(id) ?? "")) return;
       if (diskContent === activeDoc.content) { lastSavedRef.current.set(id, diskContent); return; }
-      const choice = await confirmDialog(t("confirm.externalChange"));
+      const choice = await askConfirm(t("confirm.externalChange"));
       if (choice) {
         const { eol } = normalizeEol(await readTextFile(path));
         eolRef.current.set(id, eol);
@@ -797,7 +817,7 @@ export default function App() {
         showToast(t("toast.reloaded"), "success");
       } else { lastSavedRef.current.set(id, diskContent); }
     } catch { /* ignore */ } finally { checkingRef.current = false; }
-  }, [activeDoc, showToast]);
+  }, [activeDoc, showToast, askConfirm]);
 
   useEffect(() => {
     if (!isTauri) return;
@@ -1072,6 +1092,9 @@ export default function App() {
           onRefresh={refreshLicense}
           onClose={() => { setLicenseOpen(false); setLicenseRevoked(false); }}
         />
+      )}
+      {confirmReq && (
+        <ConfirmDialog message={confirmReq.message} onResolve={settleConfirm} />
       )}
       {toast && (
         <div
