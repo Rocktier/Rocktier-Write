@@ -68,6 +68,12 @@ export async function saveFile(path: string, content: string): Promise<void> {
   await writeAtomic(path, content);
 }
 
+/** Reads the file as currently saved on disk (LF-normalised) — draft-compare 的基线。 */
+export async function readSavedContent(path: string): Promise<string> {
+  const { content } = normalizeEol(await readTextFile(path));
+  return content;
+}
+
 export async function saveFileAs(content: string, defaultName?: string): Promise<string | null> {
   const path = await dialogSave({
     filters: MD_EXTENSIONS,

@@ -251,14 +251,14 @@ export const Toolbar = memo(function Toolbar({
           </button>
         )}
 
-        <button className="tbar-btn labeled" onClick={onCycleFocus} title={t("toolbar.focusCycle")} aria-label={t("toolbar.focusCycle")}>
+        <button className="tbar-btn labeled secondary" onClick={onCycleFocus} title={t("toolbar.focusCycle")} aria-label={t("toolbar.focusCycle")}>
           <span className="tbar-label">{t("toolbar.focus")}</span>
           <span className={`state ${focusMode !== "off" ? "on" : ""}`}>{FOCUS_MODE_WORD[focusMode]()}</span>
         </button>
 
         {/* Typewriter：光标锁 40%。与 Focus 平级的独立开关（设计稿顶栏的「打字机」） */}
         <button
-          className={`tbar-btn labeled ${typewriter ? "active" : ""}`}
+          className={`tbar-btn labeled secondary ${typewriter ? "active" : ""}`}
           onClick={onToggleTypewriter}
           title={t("toolbar.typewriterCycle")}
           aria-label={t("toolbar.typewriterCycle")}

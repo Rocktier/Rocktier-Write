@@ -21,12 +21,13 @@ import { FrontmatterPanel } from "./components/FrontmatterPanel";
 import { LicenseDialog } from "./components/LicenseDialog";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { UpdateDialog } from "./components/UpdateDialog";
+import { DraftCompare } from "./components/DraftCompare";
 import { licenseStatus, onLicenseExpired, isLicenseExpiredError, revalidateLicence, type LicenseInfo } from "./services/license";
 import { checkForUpdates, currentVersion, type UpdateResult, type UpdateState } from "./services/updates";
 import { useTheme } from "./hooks/useTheme";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import {
-  openFile, saveFile, saveFileAs, normalizeEol, applyEol, type Eol,
+  openFile, saveFile, saveFileAs, normalizeEol, applyEol, readSavedContent, type Eol,
 } from "./services/file";
 import { exists, readTextFile, stat } from "@tauri-apps/plugin-fs";
 import { WELCOME_DOCUMENT, type MarkdownDocument } from "./types/index";
@@ -86,6 +87,7 @@ export default function App() {
   const [sidebar, setSidebar] = useState(true);
   const [toast, setToast] = useState<{ msg: string; tone: ToastTone } | null>(null);
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
+  const [compare, setCompare] = useState<{ saved: string } | null>(null);
   const [cursorLine, setCursorLine] = useState(1);
   const [focusMode, setFocusMode] = useState<"off" | "paragraph" | "sentence">("off");
   const [wordGoal, setWordGoal] = useState(0);
@@ -218,6 +220,20 @@ export default function App() {
     const ttl = tone === "error" ? 6000 : 2500;
     toastRef.current = setTimeout(() => setToast(null), ttl);
   }, []);
+
+  // 草稿对比：读磁盘上的已保存版本，与当前内容做 diff（jsdiff）。
+  // 无未保存改动时直接 toast，不打断写作流。
+  const openCompare = useCallback(async () => {
+    const target = docs.find((d) => d.id === activeId) ?? docs[0];
+    if (!target?.path) { showToast(t("compare.noFile"), "error"); return; }
+    try {
+      const saved = await readSavedContent(target.path);
+      if (saved === target.content) { showToast(t("compare.identical")); return; }
+      setCompare({ saved });
+    } catch {
+      showToast(t("compare.readFailed"), "error");
+    }
+  }, [docs, activeId, showToast]);
 
   // ── License（家族 L6）：读一次试用状态；写操作被拦时由 Rust 发 license-expired
   //    事件（命令层统一发，界面不用在每个 catch 里各判一次），这里弹激活对话框并
@@ -989,6 +1005,19 @@ export default function App() {
               三个视图共用同一份内容的同一开关，不再在源码/预览态漂在容器左上。 */}
           <div className="deskbar">
             <ViewSwitch viewMode={viewMode} onChange={setViewMode} />
+            <button
+              className="tbar-btn labeled"
+              onClick={() => void openCompare()}
+              title={t("compare.title")}
+              aria-label={t("compare.title")}
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+                <rect x="1.5" y="2.5" width="5" height="10" rx="1" />
+                <rect x="8.5" y="2.5" width="5" height="10" rx="1" />
+                <path d="M3 5h2M3 7.5h2M10 5h2M10 7.5h2M10 10h2" strokeLinecap="round" />
+              </svg>
+              <span className="tbar-label">{t("compare.short")}</span>
+            </button>
             <div className="deskbar-spacer" />
             {wordGoal > 0 && (
               <span className="desk-meta">
@@ -1091,6 +1120,14 @@ export default function App() {
           revoked={licenseRevoked}
           onRefresh={refreshLicense}
           onClose={() => { setLicenseOpen(false); setLicenseRevoked(false); }}
+        />
+      )}
+      {compare && (
+        <DraftCompare
+          saved={compare.saved}
+          current={activeDoc.content}
+          path={activeDoc.path ?? ""}
+          onClose={() => setCompare(null)}
         />
       )}
       {confirmReq && (

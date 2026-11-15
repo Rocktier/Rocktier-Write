@@ -294,9 +294,13 @@ html.is-mac .topbar {
   .brand-tag { display: none; }
 }
 
-/* 行宽紧张时收掉文字标签；产品名一句话随之隐藏，品牌图标仍在 */
+/* 行宽紧张时收掉文字标签；产品名一句话随之隐藏，品牌图标仍在。
+   次级开关（专注/打字机，无图标）整颗收起 —— 640px 实测它们会把
+   文档名挤到 0px 宽（几乎不可读）；文档名是顶栏的锚，优先级最高。 */
 @media (max-width: 1025px) {
   .tbar-label { display: none; }
+  .tbar-btn.secondary { display: none; }
+  .doc-title { min-width: 96px; }
   .brand-name { display: none; }
   .brand-tag { display: none; }
   .topbar { gap: 8px; padding-right: 8px; }
@@ -949,6 +953,17 @@ html.is-mac .topbar {
 .rich-pane-wrap .find-replace button:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+/* 输入框同治：无样式的 input 在深色档是「白底 + 继承白字」——白底白字的
+   真正来源。与源码视图 .find-input 同款表面色。 */
+.rich-pane-wrap .find-replace .fr-input {
+  min-width: 140px;
+  padding: 4px 8px;
+  background: var(--accent-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-primary);
 }
 
 /* 查找替换输入框：`.fr-input` 此前只有类名钩子、无任何样式规则（浏览器默认
@@ -1935,6 +1950,59 @@ html.is-mac .topbar {
 }
 
 .license-footer-spacer { flex: 1; }
+
+/* ── 草稿对比（借鉴帮小忙「文本比较」；外壳与许可对话框同款）──────── */
+.compare-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compare-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.compare-stat.ins { color: var(--success); }
+.compare-stat.del { color: var(--danger); }
+
+.compare-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+.compare-view {
+  max-height: 46vh;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.compare-view ins {
+  background: color-mix(in srgb, var(--success) 24%, transparent);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.compare-view del {
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
 
 .license-footer button {
   padding: 6px 14px;
