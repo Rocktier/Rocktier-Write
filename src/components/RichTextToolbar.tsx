@@ -156,11 +156,11 @@ function LinkDialog({ mode, initial, onCancel, onDone }: {
         onMouseDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={mode === "add" ? t("rt.addLink") : t("rt.removeLinkConfirm")}
+        aria-labelledby="rt-link-dialog-title"
       >
         {mode === "add" ? (
           <>
-            <div className="license-header"><h3>{t("rt.addLink")}</h3></div>
+            <div className="license-header"><h3 id="rt-link-dialog-title">{t("rt.addLink")}</h3></div>
             <div className="license-body">
               <div className="license-field">
                 <input
@@ -187,7 +187,7 @@ function LinkDialog({ mode, initial, onCancel, onDone }: {
           </>
         ) : (
           <>
-            <div className="license-header"><h3>{t("rt.removeLinkConfirm")}</h3></div>
+            <div className="license-header"><h3 id="rt-link-dialog-title">{t("rt.removeLinkConfirm")}</h3></div>
             <div className="license-footer">
               <span className="license-footer-spacer" />
               <button type="button" onClick={onCancel}>{t("dlg.cancel")}</button>

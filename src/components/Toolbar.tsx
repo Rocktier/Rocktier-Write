@@ -236,6 +236,12 @@ export const Toolbar = memo(function Toolbar({
           />
         ) : (
           <button className="tbar-btn labeled" onClick={openGoalEditor} title={t("toolbar.setGoal")} aria-label={t("toolbar.setGoal")}>
+            {/* 窄窗（≤1025px）会收起文字标签：这枚图标保证「设目标」钮永远有可点内容，
+                不会塌成无内容的透明小块（2026-10-25 审计登记的 P2）。 */}
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+              <circle cx="7.5" cy="7.5" r="5.5" />
+              <circle cx="7.5" cy="7.5" r="2.5" />
+            </svg>
             <span className="tbar-label">{t("toolbar.goalShort")}</span>
             {wordGoal > 0 && (
               <span className="state" title={`${t("status.words", { n: words })} · ${t("toolbar.goalProgress", { pct: goalProgress })}`}>

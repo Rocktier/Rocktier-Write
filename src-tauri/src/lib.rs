@@ -623,7 +623,7 @@ fn build_app_menu(app: &tauri::AppHandle, lang: &str) -> tauri::Result<()> {
     let license_i = MenuItem::with_id(app, "license", tr(lang, "License…", "许可与激活…", "ライセンス…", "라이선스…", "Licence…", "Lizenz…", "Licencia…", "Licença…"), true, None::<&str>)?;
     // 检查更新：只 emit "check-updates"，联网由前端 services/updates.ts 做 ——
     // 应用启动时不检查，只有用户点这里或右下角的版本号才发那一次请求。
-    let update_i = MenuItem::with_id(app, "check-updates", tr(lang, "Check for Updates…", "检查更新…", "アップデートを確認…", "업데이트 확인…", "Nach Updates suchen…", "Buscar actualizaciones…", "Verificar atualizações…", "التحقق من التحديثات…"), true, None::<&str>)?;
+    let update_i = MenuItem::with_id(app, "check-updates", tr(lang, "Check for Updates…", "检查更新…", "アップデートを確認…", "업데이트 확인…", "Rechercher des mises à jour…", "Nach Updates suchen…", "Buscar actualizaciones…", "Verificar atualizações…"), true, None::<&str>)?;
     let help_menu = Submenu::with_items(app, tr(lang, "Help", "帮助", "ヘルプ", "도움말", "Aide", "Hilfe", "Ayuda", "Ajuda"), true, &[&update_i, &license_i, &site_i, &mail_i])?;
 
     let menu = Menu::with_items(
@@ -1018,6 +1018,24 @@ pub fn run() {
                 init_license_dir(dir);
             }
             init_app_handle(app.handle().clone());
+            // Windows：关掉 WebView2 的「浏览器加速键」，否则 Ctrl+F 会同时弹出
+            // Edge 原生查找条与应用自己的查找替换条（页面级 preventDefault 拦不住
+            // 宿主层的这批键）。同键位的 F5/Ctrl+R/Ctrl+U/F12 也一并关掉 ——
+            // 应用的保存/打开/导出都走自己的快捷键与菜单，不依赖浏览器默认行为。
+            // 经 ICoreWebView2Settings3::AreBrowserAcceleratorKeysEnabled(false)，
+            // 与 tauri#16306 里生产在用的写法一致。
+            #[cfg(windows)]
+            if let Some(window) = app.get_webview_window("main") {
+                use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings3;
+                use windows_core::Interface;
+                let _ = window.with_webview(|webview| unsafe {
+                    if let Ok(settings) = webview.controller().CoreWebView2().and_then(|w| w.Settings()) {
+                        if let Ok(s3) = settings.cast::<ICoreWebView2Settings3>() {
+                            let _ = s3.SetAreBrowserAcceleratorKeysEnabled(false);
+                        }
+                    }
+                });
+            }
             Ok(())
         })
         // 冷启动竞态补发：Opened 事件可能落在「前端查询 initial_file 之后、

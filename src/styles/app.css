@@ -906,10 +906,49 @@ html.is-mac .topbar {
   padding-left: 8px;
 }
 
-/* 富文本视图的查找替换条：与源码视图那份（.find-replace）视觉统一，
-   但它挂在 .rich-pane-wrap 内、是 flex 子项，故需要自己占一行。 */
+/* 富文本视图的查找替换条：与源码视图那份（.find-replace-bar）视觉统一，
+   但它挂在 .rich-pane-wrap 内、是 flex 子项，故需要自己占一行。
+   此前容器只有 flex:none 一条规则 —— 完全无样式：透明底叠在稿纸上，
+   文字继承深色档的白色（白底白字），↑/↓/替换/全部 是浏览器默认按钮，
+   命中区远小于 24px（2026-10-25 审计登记）。按源码视图同款上装。 */
 .rich-pane-wrap .find-replace {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-floating);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+/* 条内按钮（上一个/下一个/替换/全部）：浏览器默认钮又小又随主题漂；
+   统一 24px 最小命中区 + 中性描边，与 .fr-close 的伪扩展同口径。 */
+.rich-pane-wrap .find-replace button {
+  min-width: 24px;
+  min-height: 24px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.rich-pane-wrap .find-replace button:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.rich-pane-wrap .find-replace button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 /* 查找替换输入框：`.fr-input` 此前只有类名钩子、无任何样式规则（浏览器默认

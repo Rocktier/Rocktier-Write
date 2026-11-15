@@ -29,6 +29,12 @@ docx-rs = "0.4"
 # 授权回执的 Ed25519 离线验签（license.rs，FAMILY-LICENSE.md §2）
 ed25519-dalek = "2"
 
+# Windows：关掉 WebView2 浏览器加速键（Ctrl+F 原生查找条等），见 lib.rs setup。
+# 版本与 wry 0.55.1 使用的完全一致（Cargo.lock 已有），只声明不新增下载。
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.38"
+windows-core = "0.61"
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
