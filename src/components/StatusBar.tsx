@@ -127,11 +127,11 @@ export const StatusBar = memo(function StatusBar({
         >
           {/* 2026-11-15 用户令：语言控件统一为 A+地球图标（纯图标，去文字） */}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 16 9 5l5 11" />
-            <path d="M6 12h6" />
-            <circle cx="16.5" cy="16.5" r="4.5" />
-            <ellipse cx="16.5" cy="16.5" rx="2" ry="4.5" />
-            <path d="M12.2 16.5h8.6" />
+            <path d="M3.5 16.5 8.8 4.5l5.3 12" />
+            <path d="M5.5 11.5h6.6" />
+            <circle cx="16.8" cy="16.8" r="5.2" />
+            <ellipse cx="16.8" cy="16.8" rx="2.3" ry="5.2" />
+            <path d="M11.9 16.8h9.8" />
           </svg>
         </button>
       </div>
