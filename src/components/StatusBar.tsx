@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { t, useUiLang, getUiLang, cycleUiLang } from "../i18n";
+import { t, useUiLang, cycleUiLang } from "../i18n";
 import type { LicenseInfo } from "../services/license";
 
 type FocusMode = "off" | "paragraph" | "sentence";
@@ -125,12 +125,14 @@ export const StatusBar = memo(function StatusBar({
           onClick={() => void cycleUiLang()}
           title={t("statusBar.lang")}
         >
-          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
-            <circle cx="7" cy="7" r="5.5" />
-            <ellipse cx="7" cy="7" rx="2.6" ry="5.5" />
-            <line x1="1.5" y1="7" x2="12.5" y2="7" />
+          {/* 2026-11-15 用户令：语言控件统一为 A+地球图标（纯图标，去文字） */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 16 9 5l5 11" />
+            <path d="M6 12h6" />
+            <circle cx="16.5" cy="16.5" r="4.5" />
+            <ellipse cx="16.5" cy="16.5" rx="2" ry="4.5" />
+            <path d="M12.2 16.5h8.6" />
           </svg>
-          {getUiLang() === "zh" ? "EN" : "中文"}
         </button>
       </div>
     </footer>
