@@ -478,8 +478,12 @@ html.is-mac .topbar {
 }
 
 .chapter-row[aria-current="true"] .chapter-item {
-  background: var(--bg-primary);
-  box-shadow: inset 2px 0 0 var(--accent);
+  /* 选定框（Lenso 设计稿 .outline-item.on）：中性低强度底 + 500 字重的安静方框，
+     替代旧的「反白 + 左缘 accent 竖条」—— 选中是状态，不是强调。 */
+  background: var(--accent-muted);
+  color: var(--text-primary);
+  font-weight: 500;
+  border-radius: 8px;
 }
 
 .chapter-item .row {
