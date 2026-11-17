@@ -38,9 +38,6 @@ windows-core = "0.61"
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
-# Mac App Store 构建：沙盒启用（App Store 渠道本就不允许自更新，而我们已经
-# 全局不做自更新，所以这里只剩沙盒相关的差异）
-mas = []
 
 # Size- and startup-optimized release binary
 [profile.release]
