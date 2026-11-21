@@ -11,9 +11,10 @@
   与直发轨（Entitlements.plist）的区别：MAS 轨不要 hardened runtime /
   allow-jit，反过来必须开 app-sandbox。两套不能混用。
 
-  不开 com.apple.security.network.client：Write 是离线优先的写作应用，商店轨
-  连出站通道也不留（对齐 PDF / MD 商店轨的断网决策）。沙箱内没有这条授权，
-  任何 socket 都被内核直接拒绝，直发轨的检查更新路径在商店包里天然失效。
+  network.client 必须开：Tauri Webview 用 http://asset.localhost 回环加载
+  自身前端资源，沙盒下无此授权则 socket 被内核拒绝，窗口白屏。
+  2026-11-20 OCR 1.0.0(5) 的 2.1(a) 拒信「app launched to a blank screen」
+  即此因，真机 A/B 已验证。保留能力不等于会联网：Write 业务层零出站请求。
 -->
 <plist version="1.0">
 <dict>
@@ -23,6 +24,10 @@
 
     <!-- 用户经打开/保存面板选中的文稿可读可写（md / markdown 等文件关联亦走此路径）。 -->
     <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+
+    <!-- Webview 加载自身前端资源所需的 loopback 通道（详见文件头注释）。 -->
+    <key>com.apple.security.network.client</key>
     <true/>
 </dict>
 </plist>
